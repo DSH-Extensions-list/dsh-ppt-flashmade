@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "id": "audit-pass",
+      "description": "`dsh-ppt audit` reports ok with no error-level finding",
+      "severity": "error"
+    },
+    {
+      "id": "slide-count",
+      "description": "the published deck has the requested number of slides",
+      "severity": "error"
+    },
+    {
+      "id": "text-shapes",
+      "description": "every slide carries at least one native text shape (no full-page bitmap slides)",
+      "severity": "error"
+    },
+    {
+      "id": "single-master",
+      "description": "the package has exactly one slide master",
+      "severity": "error"
+    },
+    {
+      "id": "native-chart",
+      "description": "a native chart part (`ppt/charts/*.xml` with a `c:chartSpace` root) exists",
+      "severity": "error"
+    },
+    {
+      "id": "native-table",
+      "description": "a native table (`a:tbl`) exists in a slide",
+      "severity": "error"
+    },
+    {
+      "id": "attribution",
+      "description": "`assets/image_sources.json`, when present, records a licence and an author per item",
+      "severity": "error"
+    },
+    {
+      "id": "checkpoint",
+      "description": "`.dsh-ppt/checkpoint.json` exists and parses",
+      "severity": "warning"
+    },
+    {
+      "id": "brand-theme",
+      "description": "the deck manifest binds a theme file that exists",
+      "severity": "error"
+    },
+    {
+      "id": "storyboard",
+      "description": "`deck.storyboard.json` exists, covers every page and agrees with the manifest",
+      "severity": "error"
+    },
+    {
+      "id": "role-layout",
+      "description": "every storyboard layout is a legal face for its role in the bound theme menu",
+      "severity": "error"
+    },
+    {
+      "id": "budget",
+      "description": "every page stays inside its measured content budget",
+      "severity": "error"
+    },
+    {
+      "id": "chrome",
+      "description": "the deck declares chrome and the audit reports no chrome error (coverage, geometry, skip)",
+      "severity": "error"
+    },
+    {
+      "id": "design-profile",
+      "description": "`audit --profile` reports no error-level `design-*` finding against the deck's design profile",
+      "severity": "error"
+    },
+    {
+      "id": "worktree",
+      "description": "every draft under `.dsh-ppt/versions/` is readable and `.dsh-ppt/trunk.json` agrees with the published `out/` package",
+      "severity": "error"
+    },
+    {
+      "id": "review-record",
+      "description": "`.dsh-ppt/review/review.json`, when present, parses and carries schemaVersion 1 with valid severities",
+      "severity": "warning"
+    },
+    {
+      "id": "render-snapshots",
+      "description": "`.dsh-ppt/render/pages.json`, when present, names page files that exist under the snapshot directory",
+      "severity": "warning"
+    }
+  ],
+  "metrics": [
+    "attempts",
+    "wallTimeMs",
+    "turns",
+    "toolCalls",
+    "failedToolCalls",
+    "gateFailures",
+    "skillLoads",
+    "checkpointCommands"
+  ]
+}

@@ -1,0 +1,493 @@
+{
+  "name": "dsh-ppt-flashmade",
+  "version": "0.7.1-english.20261029.1",
+  "archive": "dsh-ppt-flashmade-0.7.1-english.20261029.1.tgz",
+  "archiveSha256": "a3619bfab632d9000005c279f2e0419b7615705b48538eddf4059677e53b3cfb",
+  "upstream": "https://github.com/Bingtang1019/dsh-ppt-fusion",
+  "sourceBaseline": "a19f4d3832e92b4c722e305c7b9b67cae9ad8153",
+  "inventoryExcludes": [
+    "node_modules/"
+  ],
+  "files": [
+    {
+      "path": "NOTICE",
+      "size": 686,
+      "sha256": "11de55ccf0a3bb172dbb3de5bcbc6ab310cb4af984da9a7b7706b2fe22bebf93"
+    },
+    {
+      "path": "python-assets/vendor/NOTICE",
+      "size": 780,
+      "sha256": "516e89ca207b5ebd06327b373180c603143049cec6abbe2f3b2b3c813ca89af0"
+    },
+    {
+      "path": "docs/help/ppt-master-help.exit",
+      "size": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "docs/help/pptwise-help.exit",
+      "size": 1,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "path": "python-assets/requirements.in",
+      "size": 1606,
+      "sha256": "7ee2d7136b5d6d104c9d1979b688ae9a62d9cf381c5341540ca5f2c8015eb4f9"
+    },
+    {
+      "path": "dist/cli.js",
+      "size": 527878,
+      "sha256": "b4b69075e58b8a8f36e0f99182928915ce0b95d36a7ad96b2e30fc0a8a4a65b4"
+    },
+    {
+      "path": "dsh/client.js",
+      "size": 79889,
+      "sha256": "6f72c8a27065c80b87bdefa13436b98161a71d0741b3ec8c9834b6397255be9e"
+    },
+    {
+      "path": "dsh/index.js",
+      "size": 8188,
+      "sha256": "585a066973630c77307680b387d4036b3b7121893a2314b8908d410fd5e6b26f"
+    },
+    {
+      "path": "dsh/pptx-viewer.js",
+      "size": 12260,
+      "sha256": "9e76367c38e4f0f073bfa0c5034afbd665b1c59a6ee6f4d373010cc912ed73ad"
+    },
+    {
+      "path": "dsh/preview-tool.js",
+      "size": 91109,
+      "sha256": "27e7c3c58ca0a36169e4439c3c09effe50a75bd3c8677b8a66f22ad1b4db464e"
+    },
+    {
+      "path": "dsh/propose-tool.js",
+      "size": 15892,
+      "sha256": "6f39524d07af9fc23ae9cfefbab6e445deaf71eed02a4060cfdfbecd2a0b6d41"
+    },
+    {
+      "path": "dsh/review-tool.js",
+      "size": 16279,
+      "sha256": "9ab20ad423593462c16f9c255f9429c431f194bcc9b2855e8ecb5ffa6551fd00"
+    },
+    {
+      "path": "dsh/spawnHidden.js",
+      "size": 3278,
+      "sha256": "634f2949d7a9eb5091a7e1c126174a50e2da0d7e29ee722b14c9e596d8a12240"
+    },
+    {
+      "path": "python-assets/manifest.json",
+      "size": 4615,
+      "sha256": "b611089e811747537ba494e3cf8f023e142a7565ab50bd9b6f1a37ff8fbfcf2c"
+    },
+    {
+      "path": "python-assets/vendor/manifest.json",
+      "size": 4153,
+      "sha256": "54a82bcd9b99d1b86e9e3125bcd6b93215323236bfe489dad1274180fceac84e"
+    },
+    {
+      "path": "package.json",
+      "size": 4300,
+      "sha256": "cac9111ab84fbf10df5278082c5e06af495e79d1c9a1465edf99b2ad2c3a9e86"
+    },
+    {
+      "path": "skills/dsh-ppt-fusion/prompt_audit_manifest.json",
+      "size": 6931,
+      "sha256": "a93aef13ce2e69ff4a7d5671346cff4663b12960a6c79d3ee432a950312abbb7"
+    },
+    {
+      "path": "python-assets/requirements.lock",
+      "size": 203372,
+      "sha256": "b0cad702c854360193bd1c3df77732680e7391d4a6ce5bee220875b99329bff8"
+    },
+    {
+      "path": "dist/cli.js.map",
+      "size": 1491783,
+      "sha256": "cbbae4f4f8a574f0b330a55504139866d86fdcb402740cc9a8b05f4635952b84"
+    },
+    {
+      "path": "docs/acceptance-report.md",
+      "size": 26861,
+      "sha256": "846a4b4a2fff3f852473cd5788f5abbe0f4506b1b9d911605bf9b006a0d12f6a"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/advanced-image-motion-smoke.md",
+      "size": 12682,
+      "sha256": "408214763821e6e1805efaf71767f994735bb1deb7873b7ad237e6948843379b"
+    },
+    {
+      "path": "docs/architecture.md",
+      "size": 12243,
+      "sha256": "6a1a81c692792ccd8c3b0c92bb9f605a9952cf367a4f852f29c198c229928ad8"
+    },
+    {
+      "path": "docs/capacity.md",
+      "size": 655,
+      "sha256": "9b2bd7a5f3b8ee2d26cac1be8a14ec454beefddc0f221b7c0388ca90f98540f9"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "size": 31284,
+      "sha256": "0d55a76e80fdfa9f958d0a854ccc949129a557714ba66e24145378bdc32eb750"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/chart-recall.md",
+      "size": 1139,
+      "sha256": "987c981ff064dec6c43a982df013a98c44289f3dceef7231ebe6992d7642fd8c"
+    },
+    {
+      "path": "docs/cli.md",
+      "size": 32959,
+      "sha256": "9a86037a417726ff0ced9e74bf7e4605fffc3c0d6af97332b96d20fea8798b93"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/confirm_ui.md",
+      "size": 56600,
+      "sha256": "d7e86d4410be0d533c5f976fa6d69ab0e3932c5937589a2b1c676caf470083e1"
+    },
+    {
+      "path": "docs/contracts.md",
+      "size": 69324,
+      "sha256": "3a51cefc7f689c7820cc421e5212afd558a45713036934c5db90e72d5602e07e"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/conversion.md",
+      "size": 32958,
+      "sha256": "e54ad1bfb237d53824a71e14852a7ac1872d0cf832d4c48c66a74aab6ee5006f"
+    },
+    {
+      "path": "docs/decisions.md",
+      "size": 238690,
+      "sha256": "726051d5f694e88f1d397ddf57cca71309f48bd9d290e940a93d57e39adb8e48"
+    },
+    {
+      "path": "skills/dsh-ppt-fusion/references/design-language.md",
+      "size": 6293,
+      "sha256": "eba1456f45fddcea9d89760ec10fcf5c1f890a0dbc86aee943037e108afefc1c"
+    },
+    {
+      "path": "docs/compat/dsh-versions.md",
+      "size": 3100,
+      "sha256": "13faa0562a7b4115175f5b6b60ab06bab1416fa33f324655708b8352832fb9e7"
+    },
+    {
+      "path": "docs/dsh017-probe.md",
+      "size": 4722,
+      "sha256": "854238ed375b2ae1a44f45159ac22fa0981d69e9a195d88d2dd898261fda7b41"
+    },
+    {
+      "path": "docs/dsh020-probe.md",
+      "size": 5945,
+      "sha256": "c207b9da7f878cb1c99461f688e341ac068ffc59b1d10f9bd098c82e08be2f40"
+    },
+    {
+      "path": "docs/guide.zh.md",
+      "size": 9933,
+      "sha256": "7b4d407d5f9a99cda99f49175a01bc5d37b72e880f172fe986f943d0e95c5b4e"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/image.md",
+      "size": 27291,
+      "sha256": "4194b27bd3463438d72ab28272e2afd4c39f5fb4c88b0a76216ee17076f97221"
+    },
+    {
+      "path": "docs/install.md",
+      "size": 4733,
+      "sha256": "b4ce3bb588b58f61e7b6c045d7e8c7cd0991d1fee1a7e615eb9d306f27156321"
+    },
+    {
+      "path": "docs/licensing.md",
+      "size": 2541,
+      "sha256": "1747598b6bf98e1dad1a924fa8409a86781da1cd7d35270462ac70a54b784c41"
+    },
+    {
+      "path": "docs/m0-decision.md",
+      "size": 8904,
+      "sha256": "ab7478e27c0e0e4478a2f713dbe7a8547dc876cc71adf983669625179814fc89"
+    },
+    {
+      "path": "docs/m0-report.md",
+      "size": 10715,
+      "sha256": "d68085a24877388d45c318d58a052a58bdd3d5d84240e453c9c506fbda6312fb"
+    },
+    {
+      "path": "docs/m6-model-eval.md",
+      "size": 6555,
+      "sha256": "60c671b932a43d265724561955b801168824668642fddcf7bb134046a739771b"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/mask-gradient-smoke.md",
+      "size": 9009,
+      "sha256": "6caaf140cc078af13b4d1400c7d77a36554de8e0c118a13f5e8bda8379857fdd"
+    },
+    {
+      "path": "docs/compat/matrix.md",
+      "size": 1709,
+      "sha256": "17e5e4d1aa1c860455974b7ef5757f6d0c8ba32a3a114cd46973bb88bcbe5e2e"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/multilingual-text-smoke.md",
+      "size": 10649,
+      "sha256": "8e1fded2e02c7dd625b1243a19ed5dcd8b1b74f06ca80d62a1d01626cf352659"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/narration.md",
+      "size": 12299,
+      "sha256": "bc27eb47d9fc4160c7a782d20fb01021592ef3d4c59996174db528366359757a"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/native-data.md",
+      "size": 21221,
+      "sha256": "a5c2ae6518faea0c4aafadd5bb83f3ef62610c428ec3fe18fa4b0b367457366e"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/pptx-animations.md",
+      "size": 19943,
+      "sha256": "5c16d8cb4a2c8628607745ae583c2d40d31047d3a73322fd8e4c7bf581e90f65"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/pptx-transitions.md",
+      "size": 13106,
+      "sha256": "2a09b79e9498cc47fe9bf358b6f9c197c7c3199ca00dc865b185bd613d64b9c9"
+    },
+    {
+      "path": "docs/compat/probe.md",
+      "size": 5560,
+      "sha256": "22f75d71c006db0c2a53463c8f28440a85af2987427868762e81e792451c8282"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/project.md",
+      "size": 18211,
+      "sha256": "038d480e425e7bd264b0a4c05b03919340c5b7ed39ca31eff91af44587d9ae4d"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/prompt_audit.md",
+      "size": 6339,
+      "sha256": "5f9c6e9ce5acc2eee8621930963e43b28d6c044d8c44e7a929af933cfc7e4519"
+    },
+    {
+      "path": "docs/quality.md",
+      "size": 8159,
+      "sha256": "c260587a18f1b2c4e4a099823a87fbd0806d933414123987e6708a7fba177f94"
+    },
+    {
+      "path": "README.md",
+      "size": 2636,
+      "sha256": "42bd81afb39d3ef71890745d6ca1b7b955272d5bb2afec60cd5b2e79cc95983a"
+    },
+    {
+      "path": "docs/release.md",
+      "size": 4940,
+      "sha256": "7608ea5c4a47357e06edaed8c98cd4151d67376206af7540343a83ef5d5b68ae"
+    },
+    {
+      "path": "skills/dsh-ppt-fusion/SKILL.en.md",
+      "size": 10372,
+      "sha256": "e5b390dc919ff6048684e8744def9efa20a4c8a9e7a6935b029b6b4c10f30fbf"
+    },
+    {
+      "path": "skills/dsh-ppt-fusion/SKILL.md",
+      "size": 9567,
+      "sha256": "71615d4717c9ba04c8dbd7697eb664600df9f45e1541d0101d3cae2dea39a0c5"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/spec_review.md",
+      "size": 13593,
+      "sha256": "d92f348f20d7c5942a81b8df6b615103b7ba6ab54fa40c8d22a5c9e81fa539d7"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/svg_editor.md",
+      "size": 5501,
+      "sha256": "c61d06026f08b835ea10218715a9b72295d9f0a0a852fabd19ed083af46576b4"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/svg-contract.md",
+      "size": 58422,
+      "sha256": "e7a448bfb47a86584a154dde2660f6f5d691e8aa9f9b1806abb939578eff0963"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/svg-pipeline.md",
+      "size": 97054,
+      "sha256": "f2cd472dcf3a20ab6d620294d1e1ce8ec1348e7cad9d5a09c666dde94b6c59d1"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/template-tools.md",
+      "size": 18232,
+      "sha256": "efb3ef3a633996f51d953a37d458c5eca03d3d28359d309a4b22929b9b6f18c1"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/troubleshooting.md",
+      "size": 2988,
+      "sha256": "b80d9b347e57cce6a69bf8fa679901bc1b7dcc68372f4e812094294dc0d76076"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/update_spec.md",
+      "size": 4244,
+      "sha256": "4c9ca601b79fef436edaa8e7aa3933fd3a169e2caea3a799acf318c2e9f67450"
+    },
+    {
+      "path": "docs/upstream-drill.md",
+      "size": 1873,
+      "sha256": "b99ad5ea8a864a0010f03ca333f2f3e4db2283416966b75448fd5a76e1bad785"
+    },
+    {
+      "path": "docs/v02-model-eval.md",
+      "size": 2914,
+      "sha256": "0f55bfedb3419381fb406fbf30dd288c6bb476f6b5ab0a406aa1148520395d96"
+    },
+    {
+      "path": "docs/v020-eval.md",
+      "size": 4380,
+      "sha256": "dd67e9f558be610b60f66e6e3bfd78f31039cba5785c78c349428198f11aed47"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/video-motion-plan.md",
+      "size": 3983,
+      "sha256": "ed5531d764e975e49dcb1bb795a661d658ea98e934d9ec933aee59f69f9cf99d"
+    },
+    {
+      "path": "python-assets/vendor/ppt-master/docs/visualization-recall.md",
+      "size": 5319,
+      "sha256": "e9af2824bb67a3ca2822a94a1da4b6525dd47c2e36ad0b3e4e8653f88646b067"
+    },
+    {
+      "path": "docs/compat/voices.md",
+      "size": 1691,
+      "sha256": "0b3cdd0320bff2c23e73674f1e2f382774e1a4d8b0686e66c70bece195a4decb"
+    },
+    {
+      "path": "docs/compat/windows-sandbox.md",
+      "size": 5564,
+      "sha256": "6bf175100df73528e984fb28dbc8f98a6ed52dc243c45cf5a87c6fe0274cc148"
+    },
+    {
+      "path": "docs/compat/wps-checklist.md",
+      "size": 2683,
+      "sha256": "88ea0bec94958c995c82923aaeda68de8447728edc033f53ca5c06a0d6c597b0"
+    },
+    {
+      "path": "docs/compat/wps-report.md",
+      "size": 1498,
+      "sha256": "77aa05928e3ec401fae6148e5618e551c6043f4ffd61e6129af237ff16eb03cd"
+    },
+    {
+      "path": "python-assets/scripts/design-profile.py",
+      "size": 16080,
+      "sha256": "9023832cf6e8540c4fb2bca52c3233a7facf92ae3b38d6c19b2404f7be41c892"
+    },
+    {
+      "path": "python-assets/probe-png-renderer.py",
+      "size": 2918,
+      "sha256": "bfe0d05d8f88e08656edeee7006e69c9a4699c73c9761440df3752897fcf3a90"
+    },
+    {
+      "path": "dsh/pptx-viewer.d.ts",
+      "size": 1646,
+      "sha256": "f2cbd065b50c242f2132221a5399f3f99af9a4c706f1debfb20315c573c805e2"
+    },
+    {
+      "path": "dsh/propose-tool.d.ts",
+      "size": 2363,
+      "sha256": "d6ed3761421b4b8992d9d495686bdff978c953f9f6edb135d1b6ed61a698d4e8"
+    },
+    {
+      "path": "dsh/review-tool.d.ts",
+      "size": 1893,
+      "sha256": "c19c024925b864203c38816257b812b85c25674a8a6fe2f24949485f6a243aba"
+    },
+    {
+      "path": "docs/help/ppt-master-doc-to-md.txt",
+      "size": 1212,
+      "sha256": "1bd7bf8495b1d7d7c9602521981e5632a921ec1bc227144d29417ad19cfe3e21"
+    },
+    {
+      "path": "docs/help/ppt-master-excel-to-md.txt",
+      "size": 972,
+      "sha256": "9882214ebb0a4ed9579030d536d1cb665b25ebebcc23b9919ac29d28be856bd4"
+    },
+    {
+      "path": "docs/help/ppt-master-help.txt",
+      "size": 5184,
+      "sha256": "705a4c25a6d16759faba803cb37f05b10ab0f7df53babbf4934100d034155473"
+    },
+    {
+      "path": "docs/help/ppt-master-image-search.txt",
+      "size": 5067,
+      "sha256": "a63bc4e9bbf562d47c35043cf7e643d75aa27e2a18706207bffc13dc8e17bba0"
+    },
+    {
+      "path": "docs/help/ppt-master-mirror-template-materialize.txt",
+      "size": 917,
+      "sha256": "13dd43389be310e6f863519a4a71602f1bd30d39f4d95128909ff3677f0ae912"
+    },
+    {
+      "path": "docs/help/ppt-master-narration-sync.txt",
+      "size": 648,
+      "sha256": "72cf816914ea7957f8005539675309d6fceca08c9539d04ad83fcedf9dae8ddb"
+    },
+    {
+      "path": "docs/help/ppt-master-notes-to-audio.txt",
+      "size": 10144,
+      "sha256": "8375f49a2e31301e7769fe3e1f9f54662dd4ba76ebd7ee35944f476178082344"
+    },
+    {
+      "path": "docs/help/ppt-master-pdf-to-md.txt",
+      "size": 1735,
+      "sha256": "e0a1dbd025d1f8d0fea6d8cb4b14c47eac6dc57edec9d90309eeb727010039a2"
+    },
+    {
+      "path": "docs/help/ppt-master-ppt-to-md.txt",
+      "size": 768,
+      "sha256": "77ee613e46d709e810b3bd18c64d10c9dfab1fe6d6a6c85da90b3d78f994f8b5"
+    },
+    {
+      "path": "docs/help/ppt-master-pptx-delivery-check.txt",
+      "size": 230,
+      "sha256": "f5edcf48b48f73c19ab73a6c42c8e105aa7f3989a4a8ca521df2b07c739c7b9d"
+    },
+    {
+      "path": "docs/help/ppt-master-pptx-to-svg.txt",
+      "size": 2030,
+      "sha256": "7cbf2e19f81f156ebe22f93af36229ee39a83b7c44eddc69fc4bdabe767361d4"
+    },
+    {
+      "path": "docs/help/ppt-master-project-init.txt",
+      "size": 296,
+      "sha256": "4b586d32890e72c0dbf903c782ca597541675df5007ba872a4013a4efa77a208"
+    },
+    {
+      "path": "docs/help/ppt-master-project.txt",
+      "size": 1112,
+      "sha256": "09951c3c89c9264c9d74c837807c9a459103da9e37f477a1b1434f8826849a2d"
+    },
+    {
+      "path": "docs/help/ppt-master-stamp-native-fallbacks.txt",
+      "size": 496,
+      "sha256": "4ea22d01708b69fb62b6e3c72724f57d4738cc7a30e10becaf4f2409401f69f6"
+    },
+    {
+      "path": "docs/help/ppt-master-svg-quality-check.txt",
+      "size": 3397,
+      "sha256": "cd54f1daa99cfcbbb1e0cdf3b2860406f3379bf97f98ea5eac81cb6b25435e51"
+    },
+    {
+      "path": "docs/help/ppt-master-svg-to-pptx.txt",
+      "size": 24267,
+      "sha256": "c6c10835df9a1cae2cf945e23ce1cce4864e6e9d88ae174038c7bc5e7377500e"
+    },
+    {
+      "path": "docs/help/ppt-master-web-to-md.txt",
+      "size": 1210,
+      "sha256": "ec2b6d2de83b0545f94b1df0f06f74037ed1b7123bfe9cced0e8fb4e494076fc"
+    },
+    {
+      "path": "docs/help/pptwise-help.txt",
+      "size": 3771,
+      "sha256": "4e1f2a4fca6b9b0c24bb8009297be0b0822e0784d49ffb38bca267408d6812b1"
+    },
+    {
+      "path": "cordis.patch.yml",
+      "size": 291,
+      "sha256": "5fc0c92d2a2a883296942545fc2e537fac1db3da3cb91024eef87f5e73536b48"
+    }
+  ]
+}

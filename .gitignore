@@ -1,0 +1,54 @@
+node_modules/
+dist/
+lib/
+coverage/
+*.tsbuildinfo
+
+# Scratch deck workspaces used while exercising the CLI by hand
+tmp/
+
+# Deck workspaces and engine scratch produced while testing by hand
+.dsh-ppt/
+fixtures/_m0-scratch/
+fixtures/**/.dsh-ppt/
+fixtures/**/.pptwise/
+fixtures/**/.pptwise-preview/
+fixtures/**/exports/*.pptx
+fixtures/**/backup/
+fixtures/hello/theme.json
+fixtures/hello/tokens.json
+fixtures/hello/master-design.json
+
+# Reference-deck material (V7.2 B1): only the numeric profile fixture is tracked.
+# The deck itself, its media and any extracted assets never enter the repository.
+fixtures/reference/*
+!fixtures/reference/profile.json
+*.potx
+*.ppsx
+*.thmx
+*.key
+fixtures/**/live_preview/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Secrets and local credentials (never commit these; the DSH credentials file and
+# provider keys live outside this repository)
+.env.local
+.env.*.local
+*.pem
+*.key
+*.pfx
+*.p12
+.credentials.yaml
+*credentials*.yaml
+*credentials*.yml
+
+# Release tarballs and local packing output
+*.tgz
+pack/
+
+# Local engine/venv and preview caches (must stay outside the repository anyway)
+.dsh-ppt-cache/

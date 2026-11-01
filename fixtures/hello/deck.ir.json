@@ -1,0 +1,17 @@
+{
+  "version": "5",
+  "filename": "hello",
+  "theme": { "id": "brief" },
+  "meta": { "organization": "dsh-ppt-fusion", "authors": [{ "name": "golden fixture" }], "animation": { "elements": "auto" } },
+  "assets": { "images": {} },
+  "slides": [
+    { "type": "cover", "id": "p01", "heading": "dsh-ppt-fusion", "subheading": "golden fixture: five pages, two engines, one deck", "components": [] },
+    { "type": "content", "id": "p02", "kind": "points", "heading": "Two engines, one deck",
+      "components": [
+        { "type": "bullets", "style": "checklist", "items": ["pptwise renders the standard pages", "ppt-master renders the deep pages", "the merge keeps one master"] }
+      ] },
+    { "type": "content", "id": "p03", "kind": "data", "placeholder": true, "components": [] },
+    { "type": "content", "id": "p04", "kind": "evidence", "placeholder": true, "components": [] },
+    { "type": "ending", "id": "p05", "heading": "Published from one command", "subheading": "dsh-ppt render", "components": [] }
+  ]
+}

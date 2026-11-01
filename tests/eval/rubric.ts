@@ -1,0 +1,300 @@
+/**
+ * Scenario expectations and the pure evaluation of one finished deck.
+ *
+ * The model eval (plan M6.4-M6.6) runs a scenario through the headless agent and
+ * then answers one question per check against the produced workspace. This module
+ * owns the check list and stays free of process and filesystem access so the
+ * pass/fail rules can be unit-tested without a model.
+ */
+
+/** Expectations one scenario declares in `fixtures/scenarios/<name>.yaml`. */
+export interface ScenarioRubric {
+  readonly minSlides: number
+  readonly maxSlides: number
+  readonly requireTextShapes: boolean
+  readonly requireNativeChart: boolean
+  readonly requireNativeTable: boolean
+  readonly requireAttribution: boolean
+  readonly requireCheckpoint: boolean
+  readonly requireBrandTheme: boolean
+  /** The deck carries a design profile and the profile audit reports no design error (V7.2 B5). */
+  readonly requireDesignProfile: boolean
+}
+
+/** One staged input file the harness copies into the scenario workspace. */
+export interface ScenarioInput {
+  /** Path relative to the repository root. */
+  readonly from: string
+  /** Destination relative to the scenario workspace. */
+  readonly to: string
+}
+
+/** One scenario file, validated after YAML parsing. */
+export interface ScenarioSpec {
+  readonly name: string
+  readonly title: string
+  readonly maxAttempts: number
+  readonly task: string
+  readonly inputs: readonly ScenarioInput[]
+  readonly rubric: ScenarioRubric
+}
+
+/** Everything the checks read from a finished workspace. */
+export interface DeckObservation {
+  /** `null` when the audit could not be run at all. */
+  readonly auditOk: boolean | null
+  readonly auditErrorCount: number
+  readonly auditSkipped: readonly string[]
+  /** Slide count from `out/manifest.json`, or null when nothing was published. */
+  readonly slides: number | null
+  /** Slides (of the package) that carry at least one `p:sp` shape; null when unreadable. */
+  readonly slidesWithTextShapes: number | null
+  /** Number of `ppt/slideMasters/*.xml` parts; null when unreadable. */
+  readonly masterCount: number | null
+  /** `ppt/charts/*.xml` parts whose root element is `c:chartSpace`. */
+  readonly chartParts: readonly string[]
+  /** Whether any slide XML carries an `a:tbl` table. */
+  readonly hasTable: boolean
+  /** Problems found in `assets/image_sources.json`, if that file exists. */
+  readonly attributionProblems: readonly string[]
+  readonly attributionPresent: boolean
+  /** `phase` from `.dsh-ppt/checkpoint.json`, or null when absent or unparsable. */
+  readonly checkpointPhase: string | null
+  /** Theme file the deck manifest binds, or null. */
+  readonly themeFile: string | null
+  /** Whether that theme file exists under the deck. */
+  readonly themeFileExists: boolean
+  /** Whether `deck.storyboard.json` exists (V6 WP2). */
+  readonly storyboardPresent: boolean
+  /** Error findings other than layout/budget, as `rule: message` (coverage, manifest agreement, …). */
+  readonly storyboardProblems: readonly string[]
+  /** `storyboard-layout` error findings, as `rule: message` (role↔layout, theme menu). */
+  readonly layoutProblems: readonly string[]
+  /** `budget-exceeded` error findings, as `rule: message`. */
+  readonly budgetProblems: readonly string[]
+  /** Whether the manifest declares a `chrome` block (V6 WP1). */
+  readonly chromeDeclared: boolean
+  /** Error-level `chrome-*` findings, as `rule: message`. */
+  readonly chromeProblems: readonly string[]
+  /** Whether `audit --profile` ran and found no error-level `design-*` finding (V7.2 B5). */
+  readonly designProfileOk: boolean | null
+  /** Error-level `design-*` findings, as `rule: message`. */
+  readonly designProfileProblems: readonly string[]
+  /** Readable drafts under `.dsh-ppt/versions/`. */
+  readonly proposalCount: number
+  /** Problems in the worktree records: a draft whose package is missing, a trunk that disagrees with `out/`. */
+  readonly worktreeProblems: readonly string[]
+  /** Problems in `.dsh-ppt/review/review.json`, when that record exists. */
+  readonly reviewProblems: readonly string[]
+  /** Problems in the `.dsh-ppt/render/pages.json` snapshot index, when it exists. */
+  readonly renderSnapshotProblems: readonly string[]
+}
+
+/** One evaluated check, before the catalog supplies its severity. */
+export interface RubricCheckResult {
+  readonly id: string
+  /** `error` checks decide the scenario; `warning` checks are recorded process signals. */
+  readonly level: 'error' | 'warning'
+  readonly passed: boolean
+  readonly message: string
+}
+
+/** The check ids this module emits, in report order. */
+export const CHECK_IDS = [
+  'audit-pass',
+  'slide-count',
+  'text-shapes',
+  'single-master',
+  'native-chart',
+  'native-table',
+  'attribution',
+  'checkpoint',
+  'brand-theme',
+  'storyboard',
+  'role-layout',
+  'budget',
+  'chrome',
+  'design-profile',
+  'worktree',
+  'review-record',
+  'render-snapshots',
+] as const
+
+export type CheckId = (typeof CHECK_IDS)[number]
+
+/** Severity per check (mirrors `fixtures/scenarios/rubric.json`). */
+export const CHECK_SEVERITY: Readonly<Record<CheckId, 'error' | 'warning'>> = {
+  'audit-pass': 'error',
+  'slide-count': 'error',
+  'text-shapes': 'error',
+  'single-master': 'error',
+  'native-chart': 'error',
+  'native-table': 'error',
+  attribution: 'error',
+  // Checkpoint use is a process metric (plan M6.4), not a delivery gate.
+  checkpoint: 'warning',
+  'brand-theme': 'error',
+  // V6 R2/R4 and V7 A1: the storyboard plan and the deck chrome are delivery gates from v0.2 on.
+  storyboard: 'error',
+  'role-layout': 'error',
+  budget: 'error',
+  chrome: 'error',
+  // V7.2 B5/S26: the profile audit is the quality-alignment delivery gate.
+  'design-profile': 'error',
+  // V10 S41: a trunk record that disagrees with out/ is a broken invariant, so this one
+  // is a gate; a deck that never used the worktree passes with no drafts.
+  worktree: 'error',
+  // V10 S37/S43: the review and snapshot records are process signals, not delivery gates.
+  'review-record': 'warning',
+  'render-snapshots': 'warning',
+}
+
+/**
+ * @param checks - evaluated checks.
+ * @returns true when every error-level check passed; warnings never fail a scenario.
+ */
+export function attemptPassed(checks: readonly RubricCheckResult[]): boolean {
+  return checks.every((check) => check.level === 'warning' || check.passed)
+}
+
+/**
+ * Evaluate every check for one observation.
+ *
+ * A check that was not requested by the rubric passes with a `not required`
+ * message, so a report always carries the same thirteen rows and differences stay
+ * visible without reading the scenario.
+ *
+ * @param rubric - the scenario's expectations.
+ * @param observation - what the finished workspace contains.
+ * @returns one result per check id, in `CHECK_IDS` order.
+ */
+export function evaluateRubric(rubric: ScenarioRubric, observation: DeckObservation): RubricCheckResult[] {
+  const results: Record<CheckId, RubricCheckResult> = {
+    'audit-pass': pass(
+      'audit-pass',
+      observation.auditOk === true,
+      observation.auditOk === null
+        ? 'the audit gate did not run'
+        : observation.auditOk
+          ? `audit ok (${String(observation.auditSkipped.length)} skipped source(s))`
+          : `audit failed with ${String(observation.auditErrorCount)} error(s)`,
+    ),
+    'slide-count': pass(
+      'slide-count',
+      observation.slides !== null && observation.slides >= rubric.minSlides && observation.slides <= rubric.maxSlides,
+      observation.slides === null
+        ? 'no published slide count found'
+        : `${String(observation.slides)} slide(s), expected ${String(rubric.minSlides)}-${String(rubric.maxSlides)}`,
+    ),
+    'text-shapes': toggle(
+      'text-shapes',
+      rubric.requireTextShapes,
+      observation.slides !== null && observation.slidesWithTextShapes === observation.slides,
+      `${String(observation.slidesWithTextShapes ?? 0)} of ${String(observation.slides ?? 0)} slide(s) carry a text shape`,
+    ),
+    'single-master': pass('single-master', observation.masterCount === 1, `${String(observation.masterCount ?? 0)} slide master(s)`),
+    'native-chart': toggle(
+      'native-chart',
+      rubric.requireNativeChart,
+      observation.chartParts.length > 0,
+      observation.chartParts.length === 0 ? 'no native chart part found' : `native chart part(s): ${observation.chartParts.join(', ')}`,
+    ),
+    'native-table': toggle('native-table', rubric.requireNativeTable, observation.hasTable, observation.hasTable ? 'native table found' : 'no native table found'),
+    attribution: toggle(
+      'attribution',
+      rubric.requireAttribution || observation.attributionPresent,
+      observation.attributionProblems.length === 0,
+      observation.attributionProblems.length === 0
+        ? observation.attributionPresent
+          ? 'image_sources.json records a licence and an author for every image'
+          : 'no sourced images in this deck'
+        : observation.attributionProblems.join('; '),
+    ),
+    checkpoint: toggle(
+      'checkpoint',
+      rubric.requireCheckpoint,
+      observation.checkpointPhase !== null,
+      observation.checkpointPhase === null ? 'no .dsh-ppt/checkpoint.json found' : `checkpoint phase ${observation.checkpointPhase}`,
+    ),
+    'brand-theme': toggle(
+      'brand-theme',
+      rubric.requireBrandTheme,
+      observation.themeFile !== null && observation.themeFileExists,
+      observation.themeFile === null ? 'the manifest binds no theme file' : `theme file ${observation.themeFile}${observation.themeFileExists ? '' : ' is missing'}`,
+    ),
+    // V6 R2/R3/R4 and V7 A1: the plan is part of the delivery, not a suggestion.
+    storyboard: pass(
+      'storyboard',
+      observation.storyboardPresent && observation.storyboardProblems.length === 0,
+      observation.storyboardPresent
+        ? observation.storyboardProblems.length === 0
+          ? 'deck.storyboard.json covers every page and agrees with the manifest'
+          : observation.storyboardProblems.join('; ')
+        : 'no deck.storyboard.json found',
+    ),
+    'role-layout': pass(
+      'role-layout',
+      observation.layoutProblems.length === 0,
+      observation.layoutProblems.length === 0 ? 'every layout is a legal face for its role in the bound theme menu' : observation.layoutProblems.join('; '),
+    ),
+    budget: pass(
+      'budget',
+      observation.budgetProblems.length === 0,
+      observation.budgetProblems.length === 0 ? 'every page fits its measured content budget' : observation.budgetProblems.join('; '),
+    ),
+    chrome: pass(
+      'chrome',
+      observation.chromeDeclared && observation.chromeProblems.length === 0,
+      observation.chromeDeclared
+        ? observation.chromeProblems.length === 0
+          ? 'the deck declares chrome and the audit reports no chrome error'
+          : observation.chromeProblems.join('; ')
+        : 'the manifest declares no chrome block',
+    ),
+    'design-profile': toggle(
+      'design-profile',
+      rubric.requireDesignProfile,
+      observation.designProfileOk === true && observation.designProfileProblems.length === 0,
+      observation.designProfileOk === null
+        ? 'the deck carries no design profile to audit'
+        : observation.designProfileProblems.length === 0
+          ? 'the package follows the design profile inside tolerance'
+          : observation.designProfileProblems.join('; '),
+    ),
+    // V10 Part C: a draft whose package is gone, or a trunk record that disagrees with
+    // out/, is exactly the silent overwrite the worktree exists to prevent.
+    worktree: pass(
+      'worktree',
+      observation.worktreeProblems.length === 0,
+      observation.worktreeProblems.length === 0
+        ? `${String(observation.proposalCount)} draft(s), trunk consistent with out/`
+        : observation.worktreeProblems.join('; '),
+    ),
+    // V10 Part B: a recorded review is a claim about the pages, so a malformed one is
+    // reported rather than ignored.
+    'review-record': pass(
+      'review-record',
+      observation.reviewProblems.length === 0,
+      observation.reviewProblems.length === 0 ? 'review record, when present, is well formed' : observation.reviewProblems.join('; '),
+    ),
+    // V10 Part A: a snapshot index that names pages which are not on disk would make
+    // the render gate read a stale deck.
+    'render-snapshots': pass(
+      'render-snapshots',
+      observation.renderSnapshotProblems.length === 0,
+      observation.renderSnapshotProblems.length === 0 ? 'snapshot index, when present, points at the pages on disk' : observation.renderSnapshotProblems.join('; '),
+    ),
+  }
+  return CHECK_IDS.map((id) => results[id])
+}
+
+/** @returns a check that always runs. */
+function pass(id: CheckId, passed: boolean, message: string): RubricCheckResult {
+  return { id, level: CHECK_SEVERITY[id], passed, message }
+}
+
+/** @returns a check that reports `not required` when the rubric does not ask for it. */
+function toggle(id: CheckId, required: boolean, passed: boolean, message: string): RubricCheckResult {
+  if (!required) return { id, level: CHECK_SEVERITY[id], passed: true, message: 'not required by this scenario' }
+  return { id, level: CHECK_SEVERITY[id], passed, message }
+}

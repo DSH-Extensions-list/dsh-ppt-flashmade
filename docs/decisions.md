@@ -1,0 +1,3042 @@
+# Decisions
+
+ADR log for dsh-ppt-fusion. Every entry records date, decision, evidence, and the
+alternatives that were rejected. An entry is added whenever an implementation choice or
+an observed upstream fact departs from `PPT-FUSION-PLAN.md`; the plan is then synced to
+the newest ADRs at the next plan revision (v4 did that for ADR-001…029). **The ADR is
+the authoritative record; where a stale line of the plan disagrees with a newer ADR,
+the ADR wins.**
+
+## ADR index
+
+| # | Subject |
+|---|---|
+| 001 | `dsh plugin add` needs `-w` on workspace profiles |
+| 002 | M0.1 verifies without restarting the live web profile |
+| 003 | Resolve uv by absolute path, never PATH |
+| 004 | Child-process pipes work; EPERM premise refuted |
+| 005 | Pin upstream artifacts by actual-file SHA-256 + size |
+| 006 | Engine venv is uv-managed, no pip |
+| 007 | Deep pages: seven measured authoring rules |
+| 008 | Deep export = four-step gated pipeline |
+| 009 | Machine output read from files, not stdout |
+| 010 | M0.7 prototype scope (superseded by 018) |
+| 011 | Fusion fixtures author their own native chart/table pages |
+| 012 | Theme bridge reads `style.*` of ThemeFile v2 |
+| 013 | Whitelist excludes image-gen / video-* non-goals |
+| 014 | Determinism: pptwise byte-stable, master timestamp-only unstable |
+| 015 | Deep project directory keeps its generated name |
+| 016 | PS 5.1, BOM-free writers, `[Content_Types].xml` `-LiteralPath` |
+| 017 | canonicalize recurses into embedded OOXML parts |
+| 018 | M0.D closed with full closure import; multi-master dormant |
+| 019 | runner.ts + logging.ts added; DSH fields wait for M7 |
+| 020 | M1 verification record |
+| 021 | Theme fonts are arrays; backgrounds carry gradient slots |
+| 022 | 24-theme re-capture is a script gate |
+| 023 | M2 verification record |
+| 024 | Plan v3 alignment retro-fitted into closed milestones |
+| 025 | B7 activated: no Python-side PNG rasteriser |
+| 026 | `deep render` batch-only; reports inside project; `--out` deck-relative |
+| 027 | M3 verification record |
+| 028 | Merge bridge: content-aware reuse + three real-merge bugs |
+| 029 | M4 progress: merge core and render chain landed, rest listed |
+| 030 | V4 sync: plan, architecture, README, docs index |
+| 031 | ADR-029 remaining list made explicit: M4.9 / M4.10 / M4.11 are separate items |
+| 032 | Animation owner: one post-merge pass in `bridge/post.ts` |
+| 033 | T1 canonicaliser, the golden v1 fixture, and `fixtures:verify` |
+| 034 | The compat pass v1: registered downgrades, the sharp PNG stamp, and refusals |
+| 035 | The unified audit gate: eight sources, an honest skip list, a warning-only ΔE |
+| 036 | Merge compatibility discipline: creationId renumbering, MCE migration, zip shape |
+| 037 | Compat goldens for all three levels, and the fixtureVersion 2 re-record |
+| 038 | M5 opens: native round trip, template routing, brand extraction |
+| 039 | Source pipeline: five routes, fail-closed URL policy, 5 MiB output cap |
+| 040 | Image search records provenance and refuses unattributed images |
+| 041 | T2 fix: pin every zip entry date, folders included |
+| 042 | Motion breadth (emphasis/paths) and narration: COM-verified wrapper, two TTS blockers |
+| 043 | Narration lands: notes roster, embedded audio, and the merge bugs it found |
+| 044 | SKILL budget gate: prompt-audit thresholds, vendored links, tiktoken pin |
+| 045 | Checkpoint and resume: model-authored state, read-only reporting, opt-in brief |
+| 046 | M6 eval harness: headless profile, isolated DSH_HOME, package rubric |
+| 047 | M6 verdict GO; brand fidelity rule fixed and re-confirmed |
+| 048 | Keyed image providers receive their keys; openverse/wikimedia unreachable here |
+| 049 | `dsh-ppt preview`: pptwise pages plus authored deep SVG overlays |
+| 050 | DSH plugin bundle: skill + preview tool + card, scratch-profile verified |
+| 051 | M8 compatibility claims: T1 allowed after the user's WPS sign-off |
+| 052 | M8 matrices: six theme menus, pixel ΔE gate, 60-page capacity probe |
+| 053 | Upstream drill: no newer patch exists; drift detection is the rehearsal |
+| 054 | V5 sync: plan, README, architecture, acceptance-report, docs index |
+| 054b | Public identity: @dsh-ppt/dsh-ppt-flashmade on GitHub under Bingtang1019 |
+| 055 | First CI run: platform threading in the venv manager, host-measured `advTm` normalised |
+| 056 | Published name is the unscoped `dsh-ppt-flashmade` (2FA-gated publish) |
+| 057 | Preview tool renders inside the deck and copies into the store (0.1.1) |
+| 058 | Deck-level chrome pass: native page-number field, footer/section, signature strip (0.1.2) |
+| 059 | Storyboard roles, the theme-menu allow-matrix and measured content budgets (v0.2 Q2) |
+| 060 | Narration auto-advance recomputed from embedded audio; `useTimings` restored after merge (Q5) |
+| 061 | Design profile: numeric extraction of a reference deck, deck-discipline guard (V7 B1) |
+| 062 | Profile compliance audit (`audit --profile`), picture-contrast coverage and bare `srgbClr` literals (V7 B4) |
+| 063 | Flaky CLI-surface test: one module import under a 30 s hook (V7 A0) |
+| 064 | Optional image generation behind `DSH_PPT_ENABLE_IMAGE_GEN`, with mandatory provenance (V7 B5.5) |
+| 065 | `serve` and `deep check\|chart` dropped from the planned CLI surface (V7 A3) |
+| 066 | Profile theming through the deck-local `theme.json`; storyboard `toc` role (V7 B2) |
+| 067 | Three asset channels (svg/office/user) and the post background layer (V7 B2.5) |
+| 068 | Design language reference and the Phase 3/4 authoring rules (V7 B3) |
+| 069 | Reference-quality split: scenario/rubric landed; the profile design pass is the S27 prerequisite (V7 B5a) |
+| 070 | v0.3.0 dual-channel release and the fixtureVersion 8 quality-alignment record (V7 B6) |
+| 071 | Generated backgrounds land above the base page rectangle, not behind it (V7.2 post-release fix) |
+| 072 | v0.3.1 patch release: the svg background fix on both channels (V7.2 post-release) |
+| 073 | Toc pages keep their authored title anchor, not the profile number-column geometry (S27 P2 fix) |
+| 074 | v0.3.2 patch release: the toc title fix on both channels (S27 P2) |
+| 075 | Content pages are laid out as the reference's equal card columns (S27 P4/P6/P11) |
+| 076 | v0.3.3 patch release: the content-page card layout on both channels |
+| 077 | Content titles clear the corner mark; pages reserve illustration space |
+| 078 | v0.3.4 patch release: the title-clearance fix on both channels |
+| 079 | DSH peer governance: declare the host packages on both runtime lines (V8 Part 0) |
+| 080 | v0.4.0 release: peer governance and the dual-runtime CI on both channels (V8 Part 0) |
+| 081 | Render snapshots: `renderpages` rasterises through PowerPoint COM and the LibreOffice Kit into a hashed cache |
+| 082 | Render-level gate: `audit --rendered` judges the page images on top of the source audit |
+| 083 | Model render self-review: the `dsh_ppt_review` tool and SKILL phase 5.5 |
+| 084 | The subagent critic stays optional and off by default (V10 B3) |
+| 085 | v0.5.0 release: render QA and the model self-review loop on both channels |
+| 086 | Worktree review workspace: version directories, propose/approve/discard, and the three-mode diff |
+| 087 | File-tree `.pptx` viewer: an external document-preview implementation over `renderpages --outside` |
+| 088 | Asset cache, discovery cache and per-call engine timeouts for `assets` / `images` |
+| 089 | The 0.2.0 line joins the compatibility CI with the runtime peer gate enforced |
+| 090 | Generate the DSH peer union from the declared runtime lines |
+| 091 | Windows sandbox (0.2.0 ACL confinement): keep the plugin chain outside the restricted token, with the matrix recorded |
+| 092 | The 0.2.0 model chain: four scenarios on a scratch install, one attempt each |
+| 099 | v0.7.0 release: the GitHub channel first, npm pending a valid token |
+| 100 | Chrome components are independent: `pageNumber.show` governs the page number only |
+| 101 | The PowerPoint COM leg validates every page image and opens a unique copy per run |
+| 102 | v0.7.1 release: the F1/F7 patch on both channels, one version line above v0.7.0 |
+
+---
+
+## ADR-001 — Install profile plugins with an explicit workspace-root flag
+
+- **Date:** 2026-09-22
+- **Decision:** Every `dsh plugin --profile <p> add` invocation passes `-w` (pnpm's
+  workspace-root flag). Both `web` and `rc1-test` profiles carry a
+  `pnpm-workspace.yaml` with `packages: ['.']`, so pnpm 8 treats the profile directory
+  as a workspace root and refuses a plain `add`.
+- **Evidence:** `dsh plugin --profile rc1-test add @liustack/pptwise@0.35.0` exited 1
+  with `ERR_PNPM_ADDING_TO_ROOT`; the identical command with `-w` installed the
+  package and reconciled `dsh.profile.bundles`.
+- **Alternatives rejected:** setting `ignore-workspace-root-check=true` in the profile
+  `.npmrc` (mutates a file DSH owns and shares with the `web` profile); editing
+  `pnpm-workspace.yaml` (same ownership problem).
+
+## ADR-002 — M0.1 plugin verification runs without restarting the live web profile
+
+- **Date:** 2026-09-22
+- **Decision:** Install pptwise into the `rc1-test` scratch profile and verify it at
+  two levels that need no service restart: the composed profile tree
+  (`dsh --profile rc1-test --dump-config`, which shows the `@liustack/pptwise` layer)
+  and an in-process `apply()` smoke test against a stub Cordis context
+  (`tests/m0/pptwise-plugin-smoke.mjs`). The browser plugin-card check is deferred to a
+  window in which the user restarts the `web` profile.
+- **Evidence:** this session runs inside the live service
+  (`DSH_WEB_URL=http://127.0.0.1:3080`, session `session-18e61857-…`), and the launcher
+  `Dsh-Web-UI.bat` boots that service; restarting it would terminate the session
+  performing the verification. The smoke test captured registrations: skill `pptwise`
+  (9622-byte body with the CLI preamble), tool `pptwise_preview`, and a
+  `['webServer']` injection.
+- **Alternatives rejected:** restarting `web` mid-session; starting a second server
+  against the same `~/.dsh` (the machine's documented storage-sharing failure mode).
+
+## ADR-003 — Resolve `uv` by absolute path, never through PATH
+
+- **Date:** 2026-09-22
+- **Decision:** The engine resolves uv at
+  `%LOCALAPPDATA%\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts\uv.exe`,
+  with `python -m uv` as an equivalent fallback. `doctor` reports the resolved path.
+- **Evidence:** `uv --version` fails on PATH, but `python -m uv --version` prints
+  `uv 0.12.17` and the shim exists in the Store Python's `local-packages` script
+  directory. `ppt-mcp` hit the same shim-directory problem earlier and is invoked from
+  the global patch layer by absolute path.
+- **Alternatives rejected:** `pip install uv` (already satisfied in the user site, and
+  re-installing would not put the shim on PATH); vendoring uv inside the plugin.
+
+## ADR-004 — Child-process pipes work here; the §2.6 EPERM premise does not hold
+
+- **Date:** 2026-09-22
+- **Decision:** Keep the file-contract style between Node and the Python engine for
+  replayability, cacheability, and large payloads, but do not treat piped stdio as
+  unavailable or forbidden. `engine/master.ts` may use `spawnSync`/`spawn` with pipes
+  for small results and must still write bulk artifacts to files.
+- **Evidence:** `tests/m0/spawn-probe.mjs` exercised `spawnSync` with `encoding`,
+  `execSync`, async `spawn` collecting `stdout`/`stderr` through pipes, `stdio:
+  'inherit'`, `stdio: 'ignore'`, and a 5 KB `ppt-master --help` capture: every mode
+  succeeded with exit code 0 and intact output; no EPERM appeared.
+- **Alternatives rejected:** building the bridge around a constraint that could not be
+  reproduced (would add a `cmd /c` redirect layer and make error classification
+  strictly worse).
+
+## ADR-005 — Pin upstream artifacts by size and SHA-256 over the artifact, not by branch head
+
+- **Date:** 2026-09-22
+- **Decision:** `python-assets/manifest.json` stores the SHA-256 and byte size of the
+  files actually used (wheel, source tarballs) as the binding pin, and records the
+  branch head SHA alongside as informational. The ppt-master wheel is **15,400,327
+  bytes**, not the 22,142,023 bytes stated in the plan.
+- **Evidence:** `Get-FileHash` over `%TEMP%\ppt-fusion-research\ppt_master.whl`;
+  `git ls-remote` gave `ppt-master@fb478a93…` and `pptwise@fa2444bc…` as moving heads.
+- **Alternatives rejected:** trusting the plan's byte count (the plan itself says an
+  observed difference wins); `git clone` for reproducible SHA pinning (both clones
+  failed with `fatal: early EOF` against this network, so tarballs are the available
+  artifact).
+
+## ADR-006 — The engine venv is uv-managed and has no `pip`
+
+- **Date:** 2026-09-22
+- **Decision:** All Python package operations on the engine venv go through uv
+  (`uv venv`, `uv pip install`, `uv pip freeze`). Never call `python -m pip` inside it.
+- **Evidence:** `uv venv` does not install pip, and
+  `<venv>\Scripts\python.exe -m pip --version` fails with `No module named pip`.
+- **Alternatives rejected:** adding `--seed`/`pip` (slower, and the lock file is the
+  source of truth anyway).
+
+## ADR-007 — Deep pages obey a stricter authoring contract than the plan describes
+
+- **Date:** 2026-09-22
+- **Decision:** The fusion deep-page authoring flow, the SKILL, and `validate` enforce:
+  1. the project root carries `spec_lock.md` with `## typography` rows whose values are
+     bare positive px numbers; every `*_family` row is free text;
+  2. every page SVG declares `data-pptx-page-role` (`cover|toc|section|content|ending`);
+  3. any element carrying `data-pptx-role` also carries a stable `id`;
+  4. every root-level `<g>` declares `data-pptx-bounds="x y w h"`, zones stay disjoint
+     beyond 1 px, and contained text must not overflow the declared zone by more than
+     5 %;
+  5. a font size absent from the typography anchors may appear at most twice per page;
+  6. native-object markers need `data-pptx-fallback-sha256`, produced by
+     `stamp-native-fallbacks --write` after every fallback edit.
+- **Evidence:** `svg-quality-check` error text during M0 iterations: "Master export
+  requires spec_lock.md typography title and body rows"; "spec_lock typography sizes
+  must be positive finite unitless px values"; "page SVG is missing root
+  data-pptx-page-role"; "`<rect>` with data-pptx-role requires a stable id"; "visible
+  root-level `<g>` module(s) without explicit data-pptx-bounds"; "spec_lock
+  typography-size recurrence"; "requires data-pptx-fallback-sha256".
+- **Alternatives rejected:** editing the checker's expectations by disabling rules
+  (the constraints are what make deep pages render predictably in PowerPoint).
+
+## ADR-008 — Deep export is a four-step gated pipeline, not one command
+
+- **Date:** 2026-09-22
+- **Decision:** `renderDeep` runs: `stamp-native-fallbacks --write` (only when markers
+  exist) → `svg-quality-check <project> --quick-generate --canonical-authoring --stage
+  final --json` → `svg-to-pptx <project> --quick-generate --native-charts-and-tables
+  --with-notes` → read `validation/<stem>.report.json`. The quality step is not
+  optional: `svg-to-pptx --quick-generate` refuses to run without a passing recorded
+  final report and fails with "found not-provided".
+- **Evidence:** the first export attempt failed with exactly that message and named the
+  command to run; after the report existed, the export completed with
+  `[POSTFLIGHT] status=passed-with-warnings quality_gate=passed slides=5`.
+- **Alternatives rejected:** running the checker with default flags (its plain run
+  passes while the final-stage gate still fails, so the recorded artifact must come
+  from the `--stage final` invocation).
+
+## ADR-009 — Machine-readable engine output is read from files, not stdout
+
+- **Date:** 2026-09-22
+- **Decision:** the Python bridge treats `validation/svg_quality_report.json` and
+  `validation/<stem>.report.json` as the machine interfaces, and parses stdout only for
+  human receipts (`[POSTFLIGHT] …`, `[PPTX] …`).
+- **Evidence:** `svg-quality-check … --json` writes `[SCAN]`/`[REPORT]` progress lines
+  to stdout around the JSON body, so the captured stdout is not valid JSON, while
+  `validation/svg_quality_report.json` parsed cleanly.
+- **Alternatives rejected:** regex-extracting the JSON region from stdout.
+
+## ADR-010 — M0.7 prototype scope: shape-only slide, layout rel repointed
+
+- **Date:** 2026-09-22
+- **Decision:** the M0 merge prototype replaces one slide part of the pptwise deck with
+  a shape-only ppt-master slide and repoints that slide's `slideLayout` relationship at
+  the receiving deck's own layout. Importing the deep page's layout/master/theme
+  closure, charts, and media is M4 work and is rejected loudly (not silently) by the
+  prototype.
+- **Evidence:** `scripts/m0/merge-slide.mjs` produced a 30,213-byte package that
+  PowerPoint opened with 5 slides; the deep page used was `03-bars.svg`, whose slide
+  XML references no relationship ids.
+- **Alternatives rejected:** importing the full closure inside M0 (a merge-bridge-sized
+  change, and the plan schedules it as M4's core).
+
+## ADR-011 — Fusion fixtures author their own native chart/table pages
+
+- **Date:** 2026-09-22
+- **Decision:** the hello fixture's deep chart and table pages are authored in this
+  repository; the shipped prototypes under
+  `templates/charts/` and `templates/tables/` are references, not fixtures.
+- **Evidence:** `templates/charts/column_chart.svg` fails on overlapping
+  `data-pptx-bounds` zones and undeclared font sizes; `templates/tables/record_table.svg`
+  fails the SVG-first projection gate with `columns[].align "l"` unprojected and banded
+  row fills that the payload never states. Both failures are reported by the upstream
+  checker itself, so the prototypes are not export-ready as-is.
+- **Alternatives rejected:** patching the upstream prototypes in place (they are
+  upstream artifacts; local edits would be silently overwritten by an upgrade).
+
+## ADR-012 — The theme bridge reads `StyleTokens` from `style.*` of a v2 ThemeFile
+
+- **Date:** 2026-09-22
+- **Decision:** `bridge/theme.ts` maps `theme.style.colors`, `theme.style.fonts`,
+  `theme.style.shape`, and `theme.style.defaultBackgrounds`, and preserves the v2
+  `menu`, `story`, and `emphasis` fields as opaque pass-through data.
+- **Evidence:** `pptwise theme new --from brief -o brief.theme.json --id brief` wrote a
+  file whose top level is `{id, label, style, occasions, identity, story, emphasis,
+  version: 2, menu}` with `style.keys = id, colors, fonts, shape, defaultBackgrounds`;
+  the plan's §1.1 describes the token groups as if they were top level.
+- **Alternatives rejected:** reading `theme.colors` (absent; the deck-level field
+  `theme.id` is a binding, not a palette).
+
+## ADR-013 — The engine command whitelist must exclude the non-goal commands
+
+- **Date:** 2026-09-22
+- **Decision:** `contracts.ts` registers only the subcommands the fusion exposes;
+  `image-gen`, `powerpoint-video`, `video-motion-plan`, `video-sound-mix`,
+  `video-subtitles`, and the `gemini-watermark-remove` helper are deliberately absent,
+  so `dsh-ppt` cannot reach them.
+- **Evidence:** `ppt-master --help` lists 74 subcommands including `image-gen` and the
+  four `video-*` commands, while the plan lists image generation and video export as
+  v1 non-goals.
+- **Alternatives rejected:** exposing them and documenting them as unsupported (the
+  plan's §3.7 requires that the CLI accept no image-generation command at all).
+
+## ADR-014 — Determinism: pptwise is byte-stable, ppt-master is timestamp-only unstable
+
+- **Date:** 2026-09-22
+- **Decision:** M4's byte-identical requirement is met by normalizing three things in
+  the merged package: ZIP entry timestamps, `docProps/core.xml`
+  `dcterms:created`/`dcterms:modified`, and the timestamps inside every imported
+  `ppt/embeddings/*.xlsx`. Golden fixtures compare post-normalization bytes.
+- **Evidence:** rendering `fixtures/hello/deck.ir.json` twice produced identical SHA-256
+  (`5dbf19c9…`). Exporting the same `svg_output/` twice through
+  `svg-to-pptx --quick-generate --native-charts-and-tables` produced different bytes
+  (`39ab274a…` vs `e72e3ae7…`) with exactly three parts differing: `docProps/core.xml`
+  (timestamps only), `ppt/embeddings/Microsoft_Excel_Sheet401.xlsx` (its own timestamp
+  metadata), and `[Content_Types].xml`, which is in fact identical — that third hit was
+  a PowerShell wildcard artifact (`[Content_Types].xml` is a glob pattern), and a
+  `-LiteralPath` comparison returned equal.
+- **Alternatives rejected:** declaring ppt-master output non-reproducible and dropping
+  the golden byte assertion (the unstable fields are metadata, not content, so
+  normalization is lossless).
+
+## ADR-015 — The M0 deep project directory keeps its generated name
+
+- **Date:** 2026-09-22
+- **Decision:** the checked-in deep project stays at
+  `fixtures/master-hello_ppt169_20260922/`. `project init` names directories
+  `<name>_<format>_<YYYYMMDD>` and `svg-to-pptx` reads the canvas from the roster, so a
+  renamed directory would no longer match the name `project init` produces.
+- **Evidence:** `project init master-hello --format ppt169 --dir fixtures` created
+  `fixtures\master-hello_ppt169_20260922`; `svg-quality-check` and `svg-to-pptx` both
+  accepted that directory unchanged.
+- **Alternatives rejected:** renaming to `fixtures/deep-hello/` for tidiness (would
+  desynchronize the fixture from the generator, and M3 will create project directories
+  programmatically under `.dsh-ppt/` anyway).
+
+## ADR-016 — The harness shell is Windows PowerShell 5.1; generated files are written without a BOM
+
+- **Date:** 2026-09-22
+- **Decision:** scripts in this repository stay PowerShell 5.1 compatible, and any
+  generated text artifact is written by Node (`writeFileSync(..., 'utf8')`) or by .NET
+  `UTF8Encoding($false)`. `Set-Content -Encoding utf8` is never used for machine-parsed
+  files.
+- **Evidence:** `$PSVersionTable` reports `5.1.22000.2538` / `Desktop`; `pwsh` is not on
+  PATH; `-Encoding utf8NoBOM` fails to bind; `Set-Content -Encoding utf8` produced a
+  BOM that broke `JSON.parse` on `fixtures/golden/manifest.json`. Separately,
+  `[Content_Types].xml` is a wildcard pattern to PowerShell path cmdlets, so a
+  `Test-Path`/`Select-String` on it silently reports absence unless `-LiteralPath` is
+  used — which already produced one false "missing part" result during M0.
+- **Alternatives rejected:** requiring `pwsh` (not installed, and the harness chooses the
+  shell); tolerating BOMs (they break every JSON consumer in the toolchain).
+
+## ADR-017 — `canonicalize` must recurse into embedded OOXML parts
+
+- **Date:** 2026-09-22
+- **Decision:** the T1 semantic comparison normalizes each XML part *and* recurses into
+  OOXML members of `ppt/embeddings/*` (workbooks and any embedded Office file), because
+  those carry their own `docProps/core.xml` timestamps.
+- **Evidence:** two `svg-to-pptx` runs over the same `svg_output/` compared
+  semantically different on exactly one part, `ppt/embeddings/Microsoft_Excel_Sheet401.xlsx`;
+  extracting that workbook from both runs and comparing it with the same normalizer gave
+  SEMANTICALLY EQUAL (10 parts). Every other part, including `docProps/core.xml` after
+  top-level normalization, already matched.
+- **Alternatives rejected:** treating embedded binaries as opaque SHA-256 (would leave
+  T1 permanently red for any deck with a native chart — a false negative, not a real
+  difference); excluding embedded parts from the comparison (would silently ignore a
+  part that carries the deck's editable data).
+
+## ADR-018 — M0.D closed with the full closure import; the multi-master fallback stays dormant
+
+- **Date:** 2026-09-22
+- **Decision:** the merge bridge's main strategy is layout remap (v2 §3.5) and it has
+  been proven end to end with the hardest page available (native chart plus its
+  workbook). `--allow-multi-master` is implemented in M4 only as an escape hatch and is
+  not part of any default path; the P1 assertion is a hard gate in
+  `scripts/opc-invariants.mjs`.
+- **Evidence:** `fixtures/golden/merged-chart.pptx` — base slide 3 replaced by the deep
+  native-chart page, closure imported (`chart401.xml`→`chart1.xml`,
+  `Microsoft_Excel_Sheet401.xlsx`→`…Sheet1.xlsx`, two `[Content_Types].xml` overrides,
+  chart and slide rels rewritten), deep layout/master/theme dropped and the slide's
+  layout relationship repointed at the base layout. Result: 47 parts, 5 slides, one
+  master, one theme, no dangling relationships, no duplicate rIds; PowerPoint COM opened
+  it with 5 slides, `Saved=true`, bytes unchanged. Two independent merges of the same
+  inputs are semantically equal (47 parts, 0 differences).
+- **Alternatives rejected:** shipping the minimal shape-only prototype from the first
+  M0 pass (ADR-010) as the gate evidence — it never exercised the closure import, which
+  is where the plan localizes the project's highest risk. ADR-010's narrower prototype
+  remains in the fixtures as `merged-proto.pptx` for contrast, and ADR-010 is superseded
+  by this entry for the M0 gate decision.
+
+## ADR-019 — Two modules beyond the plan's file list; the DSH plugin fields arrive in M7
+
+- **Date:** 2026-09-22
+- **Decision:** `src/engine/runner.ts` and `src/logging.ts` exist in addition to the file
+  list in plan §2.4, and `package.json` in M1 deliberately omits `main`, `exports` and
+  the `dsh` block (including `cordis.patch.yml`) until M7 adds the plugin shell.
+- **Evidence:** the runner holds the child-process primitive and the default-deny
+  environment whitelist that both `master.ts` and `frontend.ts` need; duplicating it in
+  each would put the credential policy in two places. The logger implements v2 §3.12's
+  `<deck>/.dsh-ppt/logs/<ts>-<cmd>.log` contract, which is written by both the engine and
+  the front end. §3.10 describes the *finished* package, and M7 is the milestone that
+  creates `dsh/index.js`; declaring `main`/`exports`/`dsh` in M1 would advertise an entry
+  point that does not exist yet.
+- **Alternatives rejected:** inlining the runner in `master.ts` (the front end would need
+  its own copy of the credential policy); adding a stub `dsh/index.js` now (a placeholder
+  that reports "not implemented" is worse than an absent entry point).
+
+## ADR-020 — M1 verification record
+
+- **Date:** 2026-09-22
+- **Decision:** M1 is accepted on the following measurements; the next milestone may
+  build on them.
+- **Evidence:**
+  - `pnpm typecheck`, `pnpm lint` and `pnpm test` are clean; 47 unit tests across
+    `frontend.test.ts`, `engine/contracts.test.ts`, `engine/venv.test.ts` and
+    `engine/master.test.ts`, all driven through injected process and filesystem ports
+    (no network, no venv, no PowerPoint).
+  - `pnpm build` emits `dist/cli.js` (30 KB, shebang present).
+  - `node dist/cli.js doctor` on this machine: Node v24.18.1, uv found via
+    `local-packages`, Python 3.13.12, engine venv carrying `ppt_master 0.1.128`, the
+    `ppt-master` dispatcher reporting **74** subcommands (the plan's "~70" was an
+    estimate; `docs/help/ppt-master-help.txt` has 74 command lines), pptwise 0.35.0,
+    PowerPoint COM 16.0, and a one-page self-test render — exit 0.
+  - The self-test deck (`%DSH_HOME%/ppt-fusion/doctor/self-test.pptx`, 18117 bytes) opens
+    in PowerPoint with exactly 1 slide, `Saved=true`, bytes unchanged.
+  - **Amended by ADR-024/ADR-025:** v3 added an eighth check (`png-renderer`) and that row
+    is red on this machine because no Python-side rasteriser works here. "Doctor green"
+    for M1 therefore means every check green except the row v3 introduced after the fact,
+    whose remedy is B7 in M4.
+  - The venv was renamed aside and `doctor --repair` rebuilt it from
+    `python-assets/requirements.lock`: 212 MB / 18048 files, dispatcher healthy, doctor
+    green again. The 500-file difference against the M0 capture is `__pycache__` written
+    by the M0 engine runs.
+  - `python-assets/requirements.lock` is `uv pip compile --generate-hashes` output over
+    `ppt-master==0.1.128`: 2378 lines with transitive pins and hashes.
+- **Alternatives rejected:** accepting M1 on the unit tests alone (the point of the phase
+  is that the wrapper really drives this machine's upstreams, which only a live doctor
+  run shows).
+
+## ADR-021 — Upstream theme contract corrections found by the snapshot gate
+
+- **Date:** 2026-09-22
+- **Decision:** `ThemeFonts` models `heading`, `body` and `mono` as **arrays** of family
+  names, and a `defaultBackgrounds` entry is `{kind, value?}` for colours plus
+  `{kind: "gradient", from, to, direction}` for gradients, with every background field
+  contributing palette literals.
+- **Evidence:** recording the 24 preset snapshots failed twice on real upstream data.
+  First, `style.fonts.mono` is an array of two families and appears in exactly 3 presets
+  (journal, memo, terminal); the plan's `fonts{heading[],body[],mono?}` wording suggested
+  a bare string. Second, `ledger` and `terminal` carry
+  `{kind: "gradient", from: "#151B23", to: "#0C1016", direction: "tb"}` for all four
+  background slots, so a `value`-only model rejected them. Across the catalog: 88 colour
+  slots and 8 gradient slots.
+- **Alternatives rejected:** special-casing the two gradient themes in the audit (the
+  palette walker now reads every field of a background, so a future `kind` needs no code
+  change); accepting `mono` as `string | string[]` (no preset ships a bare string, and a
+  union would let a real upstream contract change pass unnoticed).
+
+## ADR-022 — The 24-theme re-capture is a script gate, not a vitest case
+
+- **Date:** 2026-09-22
+- **Decision:** `pnpm test` keeps the structural snapshot checks (catalog size, fixture
+  presence, palette self-consistency) plus a one-theme re-capture; the full 24-theme
+  re-capture runs as `pnpm themes:verify` and as its own CI step.
+- **Evidence:** driving the upstream CLI 24 times through `spawnSync` blocks the vitest
+  worker for ~77 s, which trips vitest's own RPC timeout (`Timeout calling
+  "onTaskUpdate"`) and fails the run even though every assertion passed.
+- **Alternatives rejected:** raising the vitest timeouts (the timeout is in the worker
+  RPC, not in the test); making the runner asynchronous just for tests (the whole engine
+  layer is deliberately synchronous, and an async variant would exist only to satisfy the
+  test harness).
+
+## ADR-023 — M2 verification record
+
+- **Date:** 2026-09-22
+- **Decision:** M2 is accepted on the following measurements.
+- **Evidence:**
+  - `pnpm typecheck`, `pnpm lint`, `pnpm test` clean: **108 tests** in 12 files, of which
+    the snapshot file re-captures `brief` and `terminal` from the real upstream.
+  - `pnpm themes:verify`: **24/24 theme snapshots match the installed pptwise 0.35.0**
+    (the gate first failed on 2 themes, exactly as designed, when `allowedPalette` gained
+    gradient stops and the fixtures were re-recorded).
+  - `pnpm themes:record` regenerates every fixture, so the snapshot set is reproducible
+    rather than hand-maintained.
+  - `dsh-ppt init tmp/m2-demo --theme brief` then `validate` → `OK 3 gates: manifest,
+    ir, theme`; `theme ensure` on the same deck reports `0 changes` on both the first and
+    second run.
+  - Five deliberately broken decks are rejected with per-field messages:
+    an unknown manifest field, an unregistered `deep.kind`, a page-coverage gap, a deep
+    page without `page.svg`, and a stale `tokens.json`. M2 required three of these.
+  - `plan --from sources/brief.md` produced a 4-page draft listing 3 fields needing
+    confirmation, and `--confirm` copied it into place; `theme list` prints the 24 presets.
+  - A real defect was found and fixed while exercising `tokens export`: the preset branch
+    spawned the CLI with a temporary directory that had not been created yet, which
+    Node reports as `ENOENT` on the *executable*. `spawnFailed` messages now name the
+    working directory, and `src/commands/tokens.test.ts` pins the regression.
+- **Alternatives rejected:** accepting M2 on unit tests alone (the snapshot gate is the
+  row of the acceptance table that actually exercises upstream data, and it caught three
+  contract mistakes that mocks never would have).
+
+## ADR-024 — Plan v3 alignment: what was retro-fitted into the finished milestones
+
+- **Date:** 2026-09-22
+- **Decision:** v3's compatibility domain is adopted as written, and the parts that
+  belong to milestones already closed were retro-fitted rather than deferred:
+  - **M0.G** ran as a real experiment with its artifact `docs/compat/probe.md`; the
+    decision gate in `docs/m0-decision.md` now lists seven experiments and G's row ends
+    in `B7 activated`.
+  - **M1** gains `cairosvg` in `python-assets/requirements.lock` (now 2398 lines) and an
+    eighth `doctor` check, `png-renderer`, which runs the engine's own probe
+    (`python-assets/probe-png-renderer.py`) and fails when no renderer imports *or* when
+    one imports but cannot write a PNG.
+  - **M4/M8** keep their v3 scope: `bridge/compat.ts` with the scan/transform/stamp/lint
+    pass, `--compat safe|standard|max` on `render`, `compat lint`, the LibreOffice
+    headless CI leg, and S15–S17.
+  - `src/compat/registry.json` exists now, with the entries M0.G could measure, so the
+    later milestones extend a real registry instead of inventing one.
+- **Evidence:** plan v3 §1.5, §3.4, §3.14, M0.G, S15–S17, R14/R15. The probe's raw
+  measurements are in `docs/compat/probe.md`.
+- **Alternatives rejected:** deferring G to M4 (its whole purpose is to price the
+  rasteriser before the merge bridge is built, and the price turned out to be B7);
+  leaving the registry to M4 (then M4 would design it without measurements and S15's
+  lint would have nothing to check against).
+
+## ADR-025 — B7 activated: no Python-side PNG rasteriser on this machine
+
+- **Date:** 2026-09-22
+- **Decision:** the compatibility pass rasterises SVG with the Node-side `sharp` (B7)
+  instead of the engine's `use_compat_mode` PNG path, and `doctor`'s `png-renderer` row
+  is red on this machine by design until that lands in M4.
+- **Evidence:** `cairosvg 2.9.1` installs from the lock and then fails to import —
+  `OSError: no library called "cairo-2" was found`; upstream swallows exactly that error
+  and prints "No PNG rendering library installed, cannot use compatibility mode …
+  Will use pure SVG mode (may not display in Office LTSC 2021 and similar versions)".
+  The upstream fallback fares no better: with `svglib` + `reportlab` the detector says
+  `svglib` but conversion fails with `cannot import desired renderPM backend rlPyCairo`;
+  adding `rlPyCairo` + `pycairo` makes the detector report **no** renderer, because
+  `reportlab`/`cairocffi` resolve libcairo through `ctypes` while pycairo statically
+  links its own copy (pycairo itself works and reports cairo 1.18.4). `sharp` is proven
+  available on this machine (`pptwise doctor`: `sharp=true`).
+- **Also measured, and it bounds the cost:** our native-shape export does not use compat
+  mode at all — upstream ignores it in native mode — and a marker census over
+  `fixtures/golden/deep.pptx` finds only `p14:dur` on all five slides, with no `asvg`,
+  `a14:m` or `mc:AlternateContent`. So B7's customer is M5's SVG-image content
+  (formulas, imported icons, template materialisation), not the v1 chart/table path.
+- **Alternatives rejected:** installing a GTK/cairo runtime on the user's machine as a
+  prerequisite (a heavyweight, machine-specific dependency for a fallback path, and it
+  would not help CI); pinning an older `reportlab` with the bundled `_renderPM` extension
+  (tested: 4.2.5 still routes through `rlPyCairo`); dropping the requirement and letting
+  upstream degrade silently (that is precisely the failure mode v3 §3.4 exists to
+  prevent, and `doctor` would be lying).
+
+## ADR-026 — `deep render` is a real command, batch-only, and the engine writes reports inside the project
+
+- **Date:** 2026-09-22
+- **Decision:** M3 exposes `dsh-ppt deep render <dir> [--page <n>] [-o <out>]` as the
+  deep half of M4's `render` chain, and it implements **batch only**: a single page is a
+  batch of one, so there is one code path, one project layout and one quality gate rather
+  than two divergent flows. Two engine facts changed the wrappers:
+  - the quality report and the export report live **inside the project**
+    (`<project>/validation/…`), so the command contracts carry the project prefix; the
+    previous workspace-root paths failed the moment the pipeline ran for real;
+  - `--out` resolves against the **deck**, not the caller's working directory, because
+    the engine is only allowed to write inside the workspace. A relative `-o tmp/x.pptx`
+    run from the repository root is therefore a deck-relative path, and a path outside
+    the deck is refused instead of silently nested.
+- **Evidence:** the batch decision is the measured fixed cost: one page took 12.6 s and
+  14.8 s across two runs, while two pages took 14.5 s and 13.6 s — project init, the
+  final quality gate and the export setup dominate, and the marginal page costs about
+  1–2 s. The report-path correction came from
+  `svg-quality-check exited 0 but did not write validation/svg_quality_report.json`
+  (the file was at `<project>/validation/…`); the `--out` bug produced
+  `tmp/m3-deep/tmp/m3-deep/out/deep-single.pptx` before it was fixed.
+- **Also decided here:** the deck commands now run every child through the logging
+  runner (`<deck>/.dsh-ppt/logs/<ts>-<command>.log`, plan §3.12), and the `spec_lock.md`
+  the gate demands is derived from the deck — canvas from the page format, typography
+  anchors from the font sizes the SVG actually uses, colours from `tokens.json`, and the
+  primary language from the pages' script (the engine rejects a placeholder).
+- **Alternatives rejected:** a `--single` flag with its own project layout (two paths to
+  keep in step for no measured benefit); resolving `--out` against the process working
+  directory (the engine would then be asked to write outside the workspace, which the
+  path whitelist refuses by design).
+
+## ADR-027 — M3 verification record
+
+- **Date:** 2026-09-22
+- **Decision:** M3 is accepted on the following measurements.
+- **Evidence:**
+  - **Single-page deep render:** `dsh-ppt deep render tmp/m3-deep --page 2` produced
+    `out/deep-single.pptx` (1 slide, `Postflight status=passed-with-warnings
+    quality_gate=passed`), opened by PowerPoint COM with `Saved=true` and unchanged
+    bytes, carrying 1 native chart and 1 slideMaster (P1).
+  - **Batch deep render:** `dsh-ppt deep render tmp/m3-deep` produced
+    `out/deep-batch.pptx` (2 slides, 1 chart + 1 table), same COM and P1 results, and
+    the independent reader (`scripts/probe-pptx-reopen.py`) reads 2 slides, 8 shapes,
+    1 table, 1 chart.
+  - **Pipeline order is enforced and pinned:** the recorded transcripts show
+    `project init` → `stamp-native-fallbacks --write` → `svg-quality-check --stage final
+    --canonical-authoring` → `svg-to-pptx --quick-generate --native-charts-and-tables
+    --with-notes`, and `src/engine/deep-render.test.ts` asserts the same order.
+  - **Contract replay:** `fixtures/engine/*.log` holds those four real transcripts;
+    `tests/engine-fixtures.test.ts` replays them through the production parsers
+    (`parseCreatedProjectDir`, `parsePostflight`) and through the report-path contract.
+  - **Error classes:** sixteen cases across `deep-render.test.ts` and `master.test.ts`
+    cover the five the milestone names (missing venv, non-zero exit, timeout, missing
+    output, contract violation) plus path escape, missing SVG, absent receipt and
+    unusable venv.
+  - **Full suite:** 144 tests in 16 files green; `typecheck`, `lint`, `build` and
+    `themes:verify` (24/24) clean.
+  - **DSH terminal:** every command above ran from this session's shell, which is the
+    M0.F conclusion applied in practice (pipes work, so the pipeline is an ordinary
+    synchronous chain with file artefacts).
+
+## ADR-028 — Merge bridge: content-aware reuse, and three bugs only a real merge found
+
+- **Date:** 2026-09-22
+- **Decision:** `bridge/merge.ts` implements plan §3.5 as: replace the base slide in
+  place, import the deep page's non-layout closure (charts, workbooks, media, notes),
+  remap its layout relationship onto the base layout, and keep exactly one master. A
+  part is reused **only when its bytes are identical**; a name match with different
+  content is renamed and imported. `--allow-multi-master` remains the escape hatch and
+  registers imported masters in `presentation.xml.rels` and `p:sldMasterIdLst`.
+- **Evidence:** three defects surfaced from running the merge on real fixtures rather than
+  on hand-built ones:
+  1. the closure walk treated the deep slide itself as "already in base" because both decks
+     name slides `slide1.xml`, so a page's chart and workbook were never imported and the
+     slide pointed at parts that did not exist;
+  2. imported parts' relationships were rewritten only under `--allow-multi-master`, so a
+     plain merge left the chart pointing at its old workbook name;
+  3. reuse keyed on the *name* first, which silently replaced a deep page's chart with the
+     base deck's when the two shared a name — data loss that stayed invisible because
+     ppt-master names its parts `chart101.xml` while pptwise has no charts at all.
+  The audit also had to learn that `_rels/.rels` belongs to the package root, not to a
+  `_rels` directory.
+- **Verification:** the merged deck passes `scripts/opc-invariants.mjs` (47 parts, 5
+  slides, one master, no dangling relationships), the independent reader (5 slides, 1
+  chart, 1 table) and PowerPoint COM (`Saved=true`, bytes unchanged). `src/bridge/
+  {opc,merge}.test.ts` pin the four OPC cases the milestone names (missing part, `..`
+  normalization, External targets, duplicate rId) plus the merge rules, and the merge
+  output itself is byte-stable for identical inputs, which is tier T2.
+- **Alternatives rejected:** trusting the name match (bug 3); rewriting only the slide's
+  relationships and hoping imported parts needed none (bug 1/2); always renumbering
+  imported parts (throws away upstream naming for no benefit, and `freePartName` now keeps
+  a free name as-is).
+
+## ADR-029 — M4 progress: the merge core and render chain are done, the rest is listed
+
+- **Date:** 2026-09-22
+- **Decision:** M4 is being landed in two parts. **Landed here:** `bridge/opc.ts`,
+  `bridge/merge.ts`, the `render` chain (`renderDeck`: pptwise `--draft` → deep render →
+  merge → structural gates → delivery check → atomic publish with `out/manifest.json`),
+  failure injection behaviour, and the bridge test suites. **Still open in M4:**
+  1. the animation/transition application-point spike (v3 M4.3, ≤2 pd, "must not slip to
+     M5") — `render` currently refuses a manifest whose `post.animations` is set rather
+     than publishing a deck that ignores the request;
+  2. `bridge/compat.ts` v1 (scan/transform/stamp/lint) with `--compat safe|standard|max`
+     and the compat-report hash in `out/manifest.json` (v3 M4.9–11);
+  3. golden v1 (`fixtures/hello/` five pages including one with animation, plus
+     `golden-manifest.json`) and the semantic-determinism canonicaliser of §7.2;
+  4. merge discipline tests for `mc:AlternateContent` migration and `p14:creationId`
+     de-duplication (v3 M4.10) — both need the animation pass to exist first.
+- **Evidence for what landed:** `dsh-ppt render tmp/m3-deep` published a 3-slide deck
+  (1 standard page + 2 deep pages: native chart and native table) whose audit is clean,
+  which PowerPoint opens with `Saved=true` and one master, and which the independent
+  reader reads as 3 slides / 1 chart / 1 table. Breaking a deep page makes the same
+  command exit 1 with **no** `out/` file and three staged diagnostics under
+  `.dsh-ppt/render/`. Two renders of the same deck differ bytewise (the engines stamp
+  their own times), which is why T3 is not a gate; the merge step alone is stable.
+- **Alternatives rejected:** publishing without the compat pass while accepting `--compat`
+  flags (the flag would lie); leaving `post.animations` silently unapplied (a deck that
+  promises animation and delivers none is worse than a refusal).
+
+## ADR-030 — V4 sync: plan, architecture, README, docs index
+
+- **Date:** 2026-09-22
+- **Decision:** The external plan file (not shipped with this repository) is advanced
+  to **v4** and made consistent with ADR-001…029: EPERM premise refuted (ADR-004), uv-only
+  venv (ADR-003/006), ThemeFile v2 `style.*` and gradient/font-array shapes (ADR-012/021),
+  wheel pin 15,400,327 bytes / 74 subcommands (ADR-005/020), seven deep authoring rules and
+  the four-step gated export (ADR-007/008), full-closure M0.D and P1 verification
+  (ADR-010/018), B7 with Node `sharp` (ADR-025), and the M4 part-1/part-2 split with the
+  remaining-items list (ADR-028/029). `docs/architecture.md` is updated to reference plan v4,
+  mark the landed merge layer, and name the post/compat layers as M4 part 2. A repository
+  `README.md` now carries the architecture diagram, layer ownership, invariants, command
+  surface and doc index. This file gains the ADR index above.
+- **Evidence:** repo state at commit `616345e` (M4 part 1); plan v4 verification shows all
+  ADR-driven corrections present; README matches the committed `src/` tree and `docs/cli.md`.
+- **Alternatives rejected:** rewriting history in earlier ADRs (entries stay as written;
+  the index and v4 plan carry the consolidated view); deleting `docs/m0-*`/`docs/compat/*`
+  into one file (the probes and decision matrices remain the raw evidence the summaries
+  point to).
+
+## ADR-031 — ADR-029 remaining list made explicit: M4.9 / M4.10 / M4.11 are separate items
+
+- **Date:** 2026-09-22
+- **Decision:** ADR-029's phrase "v3 M4.9–11" is unpacked into three separately
+  verifiable remaining items in M4 part 2, and the plan v4 §4.5 / §5 M4 task list mirror
+  them exactly:
+  1. **M4.9** — `bridge/compat.ts` v1 (scan/transform/stamp/lint) + `--compat
+     safe|standard|max` on `render` + `compat lint`; stamp implements the Node `sharp`
+     path only (B7), no cairosvg code.
+  2. **M4.10** — merge discipline tests: `mc:AlternateContent` pair migration and
+     `p14:creationId` de-duplication (needs the animation pass to exist first).
+  3. **M4.11** — compat goldens for all three levels: `safe`/`standard`/`max` each
+     render hello, with compat-report snapshots; asserts SVG-backed images carry PNG
+     fallbacks and `--compat safe` output contains no morph or above-level chart types.
+  These three stay separate acceptance rows in M4; item 11 is not folded into item 9.
+- **Evidence:** plan v4 §5 M4 tasks 9/10/11 (all `- [ ]`, the only remaining compat
+  work) and §4.5 M4 row ②③④⑤.
+- **Alternatives rejected:** treating the three-tier golden as an implementation detail
+  of the compat pass (then a pass that lints but never renders would look complete);
+  rewriting ADR-029 in place (the entry stands as the part-1 landing record, this entry
+  refines its open list).
+
+## ADR-032 — Animation application point: one post-merge pass, and it works
+
+- **Date:** 2026-09-22
+- **Decision:** a deck's motion has a **single owner**: `bridge/post.ts`, applied after the
+  merge and before the structural gates. `render` reads `post/animations.json` (the path in
+  the manifest), strips whatever `p:transition`/`p:timing` the engines wrote, and writes the
+  configured transitions and entrances itself. Targets resolve by **shape name** — deep
+  pages carry their SVG group id (`milestone-chart`), standard pages carry pptwise's
+  `blk<slide>-<block>` markers when the IR sets `meta.animation.elements = "auto"` — with
+  explicit `spids` as the escape hatch. `post animate` as a standalone command stays in M5
+  (§3.9), and narration-after-animation stays forbidden (M5 wires the check).
+- **Evidence:** the XML is ported from pptwise's own byte-verified writer (`transitionXml`,
+  the `set`+`animEffect` pair, the `tmRoot → mainSeq → click par → effect par` nesting,
+  and its `dedupeShapeIds` guard for the duplicate `p:cNvPr id` values it hit in the wild).
+  PowerPoint itself confirms the result: opening the rendered deck reports
+  `MainSequence.Count = 1` with `EffectType = 10` (`msoAnimEffectFade`) on the fade slide and
+  `EffectType = 12` (`msoAnimEffectWipe`) on the wipe slide, `EntryEffect = 3849`
+  (`ppEffectFade`) / `2819` (`ppEffectWipeRight`) for the transitions, and `Saved = msoTrue`
+  (no repair). The pass is **byte-idempotent** — re-applying over its own output produces an
+  identical package — and the package audit stays clean. v4 §3.6's fallback (letting pptwise
+  own the standard pages' motion per page) is therefore **not needed**.
+- **Scope note for M6:** a standard page can only be targeted by name when its IR declares
+  `meta.animation.elements = "auto"`; otherwise the author must either rely on the default
+  deck-level transition or address shapes by explicit `spids`. The SKILL must state this,
+  because a name selector that matches nothing is a hard failure (`ContractViolation`), not a
+  silent no-op.
+- **Alternatives rejected:** two owners (engines writing what they like, post filling gaps) —
+  a mixed deck would need both timelines reconcilable and neither side knows about the other;
+  making `post animate` the only entry point and leaving `render` unanimated — the plan's
+  data flow (§2.3 step d) applies motion inside the render chain; silently ignoring a
+  selector that matches nothing — that is how a deck ships with the motion its author
+  declared missing.
+## ADR-033 — Golden v1: the T1 canonicaliser and the `fixtures:verify` gate
+
+- **Date:** 2026-09-22
+- **Decision:** M4 part 2 item ⑤ lands as three pieces: `tests/support/canonicalize.ts`
+  (the T1 comparison §7.2 asks for), the five-page `fixtures/hello` golden input, and the
+  `pnpm fixtures:record` / `pnpm fixtures:verify` pair over
+  `fixtures/golden/golden-manifest.json`. `fixtures:verify` renders the fixture in a
+  scratch workspace and enforces canonical equality for `base`, `deep` and `merged`;
+  byte equality is reported for orientation and required only of `base`, which M0 measured
+  to be byte-stable (ADR-014). The current record is `fixtureVersion: 1`.
+- **Canonical form.** Per part: XML under `*.xml`/`*.rels` is normalised by deleting
+  `dcterms:created`/`modified`, `cp:revision`, `cp:lastModifiedBy`, `TotalTime`,
+  `Application` and `AppVersion`, and by collapsing inter-tag whitespace; nested OOXML
+  (`.xlsx/.docx/.pptx/.xlsm/.docm`, default depth 1) is canonicalised recursively as
+  ADR-017 requires; every other part is reduced to its SHA-256; the part list is a
+  name-keyed map, so zip entry order carries no meaning and the comparison reports the
+  differing part names. This is the **T1 hard gate**, and `fixtures:verify` runs it in CI
+  next to `themes:verify`.
+- **Deviation from §7.2's sketch.** The plan also sketches attribute ordering,
+  namespace-prefix normalisation, a rebuilt semantic tree, and special `p:sldId`
+  order-semantics handling. None of those are implemented, because none is needed by the
+  measured differences (ADR-014/017): text-level normalisation already makes two
+  independent deep renders equal (39 parts) while their bytes differ, and `p:sldIdLst`
+  order is compared exactly where it is meaningful — inside `ppt/presentation.xml` — while
+  part enumeration order is already insignificant in the name-keyed map. Attribute order
+  and prefix spelling are equal only because both engines emit them deterministically;
+  that is sufficient for T1 as defined (our own renders of one input), but the plan's
+  stronger wording is recorded as **not** implemented. A blanket attribute sort would also
+  risk hiding a real edit such as a changed attribute value, so it is not wanted as-is.
+- **Fixture shape.** `fixtures/hello` holds authored inputs only: `deck.ir.json` (5 pages —
+  cover, points, deep chart, deep table, ending, with `meta.animation.elements = "auto"`),
+  `deck.fusion.json`, `deep/p03-native-chart/page.svg`,
+  `deep/p04-native-table/page.svg`, and `post/animations.json` (slide 3 fade entrance,
+  slide 4 wipe entrance). `theme.json`, `tokens.json` and `master-design.json` are derived,
+  so `prepareWorkspace` copies the fixture to `tmp/golden-work/hello` and runs
+  `theme ensure` there: the gate exercises the theme bridge and the fixture commits no
+  generated file (the three names are gitignored).
+- **Record runbook.** §7.3's shape: `fixtureVersion`,
+  `upstream.{pptwise,ppt-master}` taken from `PINNED`, `baseRef`/`deepRef`/`mergedRef`
+  each carrying `file`, `sha256`, `canonical`, `bytes`, plus `generatedBy`, `command`
+  and `createdAt`. `fixtures:record` copies the three artifacts staged by one `render`
+  (`<deck>/.dsh-ppt/render/{base,deep,merged}.pptx`) into `fixtures/golden/` and rewrites
+  the manifest; binaries are never hand-edited, and a semantic change re-records with a
+  raised `fixtureVersion` in the same commit.
+- **Evidence.** `pnpm fixtures:record` wrote fixtureVersion 1 (base 29206 B
+  `423624c1…`, deep 21153 B, merged 36251 B `f5455d54…`); `pnpm fixtures:verify` reported
+  canonical equal for all three, base bytes identical, deep/merged bytes differing only as
+  expected. It was re-verified after normalising the tracked fixture text to LF (the
+  `.gitattributes` rule): the deep/merged byte counts move by 1–4 bytes while canonical
+  equality still holds — the T1/T3 distinction the plan draws, measured. The canonicaliser itself was first proven on two real `svg-to-pptx` runs of the
+  same project: `semantically equal (39 parts)` while the byte hashes differed — exactly
+  what ADR-014/017 predicted. M4's acceptance evidence was re-read from the recorded
+  merged deck: 47 parts, 5 slides, 1 master, 1 chart + 1 embedding, PowerPoint COM opens it
+  with `saved:true unchanged:true`, and the animation probe reads the slide-3 fade and
+  slide-4 wipe that `post/animations.json` asked for.
+- **Naming.** M0's fixture manifest moved from `fixtures/golden/manifest.json` to
+  `fixtures/golden/m0-fixtures.json` so that §7.3's name belongs to the golden manifest;
+  the M0 evidence itself is unchanged and ADR-016's sentence carries the pointer.
+- **Alternatives rejected:** byte comparison as T1 (the engines stamp their own times, so
+  the gate would be permanently red for no meaning — ADR-014); implementing the whole §7.2
+  sketch up front (no measured difference demands it, and blanket normalisation can hide
+  real edits); committing `theme.json`/`tokens.json` beside the fixture (they would freeze
+  theme drift and let the gate pass without exercising `theme ensure`); recording only
+  after the compat pass lands (that would leave M4's end-to-end determinism gate unproven
+  while the riskiest remaining work proceeds — the golden is re-recorded then, §7.3).
+- **Remaining in M4 part 2:** ② `bridge/compat.ts` v1 + `--compat safe|standard|max` +
+  `compat lint` (B7: Node `sharp` only); ③ merge compatibility discipline tests
+  (`mc:AlternateContent` pair migration, `p14:creationId` de-duplication, plain zip / no
+  duplicate entries); ④ compat goldens for the three levels; ⑥ the §3.8 unified
+  `dsh-ppt audit` gate; and ⑤b — re-record the golden once the compat output settles.
+
+## ADR-034 — The compat pass: what v1 implements, what it refuses, and where it sits
+
+- **Date:** 2026-09-22
+- **Decision:** `bridge/compat.ts` implements plan 3.14 four steps (scan, transform, stamp,
+  lint) for the markers `src/compat/registry.json` lists, and `render` runs it after the post
+  pass and before the structural gates. `render --compat safe|standard|max` overrides the
+  manifest `compat` field, which overrides `standard`; `compat lint <file>` re-runs the
+  read-only half on any artifact; `out/compat-report.json` carries the occurrences, applied
+  changes and findings, and its sha256, the level, the level source, the registry version and
+  the counts enter `out/manifest.json`.
+- **Implemented transforms (only the registered ones).** (a) An over-level or
+  un-fallbacked morph/advanced transition becomes its registered `fade`: the
+  `mc:AlternateContent` block is unwrapped to its `mc:Fallback` when one exists, otherwise the
+  `p159:morph` attribute or the bare `p14:` child element is replaced with `p:fade`.
+  (b) An `asvg:svgBlip` without a raster sibling is stamped: `sharp` rasterises the
+  referenced SVG, the PNG part, its content type and its relationship are added, and the
+  `a:blip` `r:embed` is pointed at the PNG, so Office 2013+ shows the raster while 2016+ still
+  sees the SVG extension (B7; the Python-side renderers stay unusable per ADR-025).
+- **Refused, not guessed.** A downgrade the registry names but this build cannot build is an
+  error, never a silent no-op: `bar-chart` for the 2016/2019 chart tiers (the registry note
+  says it is a pre-export payload edit, not an XML rewrite) and `drop-narration` for a
+  non-mp3 media container (deleting narration is content loss). A missing fallback for
+  `formula-a14m` (`linear-text`) or `animation-bounce-extension` (fade over a timing tree this
+  pass did not build) is likewise an error. None of those paths is reachable from the current
+  fixture set, so their acceptance rows land with the content that produces them (M5/M8);
+  refusing keeps the no-implicit-edits rule true until then.
+- **Lint rules.** `mc:AlternateContent` must carry at least one `mc:Choice` and exactly one
+  non-empty `mc:Fallback`; each `Requires` prefix must be declared in its part and registered;
+  any other version-sensitive prefix (`p14`, `p15`, `p159`, `a14`, `a15`, `asvg`, `adec`) must
+  also be declared where it is used; a package without `ppt/presentation.xml` is rejected; and
+  every registry feature must have a scanner, so a registry edit cannot silently stop being
+  enforced. Duplicate `p14:creationId` values are an error (the merge-side rule is item 3),
+  while a CJK run without an `a:ea` slot is a warning that `--strict` promotes.
+- **Evidence.** `fixtures/golden/hello-merged.pptx` scans as five `p14:dur` occurrences with
+  zero findings at `safe`, `standard` and `max`, and the pass applies nothing, so the golden T1
+  comparison is unchanged (`pnpm fixtures:verify`: canonical equal for base/deep/merged).
+  `render --compat safe` on the scratch golden deck published a deck whose `out/manifest.json`
+  records `level: "safe", levelSource: "flag"`, with `out/compat-report.json` written and
+  hashed. The synthetic transform and stamp paths are covered by 23 unit tests, including a
+  real `sharp` rasterisation (PNG signature verified), the injected-rasteriser seam, the
+  unwrapped-morph downgrade and a missing-SVG refusal.
+- **Alternatives rejected:** implementing every registry downgrade up front (the two content
+  rewrites need M5/M8 material and would be untestable here); letting an unimplemented
+  downgrade pass as a warning (the deck would ship with markers its target Office cannot
+  render); running the pass before post (its stripper rewrites transitions, so the pass would
+  judge the wrong package); writing the pre-compat package to the staged `merged.pptx` (the
+  staged artifact must be the published bytes); leaving `sharp` a transitive dependency (a user
+  install could lose the binary the stamp needs).
+
+## ADR-035 — The unified audit gate: eight sources, an honest skip list, and a warning-only ΔE
+
+- **Date:** 2026-09-22
+- **Decision:** `dsh-ppt audit <dir> [--json] [--strict] [--pixels] [--file <pptx>]
+  [--compat <level>]` implements plan §3.8 as one command: the `validate` pass, pptwise IR
+  validation, pptwise geometry audit, the deep SVGs quality gate, the package OPC/P1 audit, the
+  engine delivery gate, the compat lint and the optional pixel comparison. `--strict` makes
+  warnings fail as well as errors; `--json` prints the whole report.
+- **Artifact rules.** `--file`, else `out/manifest.json` `file`, else the single pptx under
+  `out/`. A missing artifact is an `artifact-missing` error, and the three sources that need
+  it are named in `skipped`. A delivery gate that passes without a package would be worthless,
+  so this is deliberately not a skip.
+- **Source mapping.** pptwise findings map `severity: error` to errors and everything else to
+  warnings, with `page ?? slide` and `code` preserved as the rule id. The SVG quality report
+  maps `blocking` to errors and `introduced`/`inherited`/`source-import` to warnings. Engine
+  calls that throw become errors with their stable failure code in the message.
+- **`--pixels` is the source-colour ΔE check, warning only.** `sharp` rasterises each deep SVG
+  (longest side 256 px), colours below 1 % of the opaque pixels are dropped, and every survivor
+  is compared with the palette in CIELAB (CIE76). Above ΔE 10 the page gets a
+  `palette-delta-e` warning. It is opt-in because anti-aliasing and gradients invent colours,
+  and warning-only because it samples the authored SVG, not the rendered slide. Measured
+  anchors: ΔE black/white ≈ 100, `#FF0000`/`#EE0000` = 6.4.
+- **Why source colours and not the merged package.** Rasterising the merged DrawingML package
+  needs a renderer this machine does not have (no LibreOffice, no PDF path; Office COM export
+  is Windows-only and slow). M8 owns the renderer-based ΔE matrix over the merged package; this
+  row covers the authored deep pages today and is recorded as the narrower check.
+- **`prompt-audit` stays skipped.** The engine command registry does not carry `prompt-audit`
+  and the SKILL it would budget does not exist before M6; an unregistered engine command is not
+  callable (§3.9), so the gate names the skip instead of inventing a budget.
+- **Evidence.** On the rendered golden deck the non-strict gate is green: 11 sources, 0 errors,
+  5 warnings (all `svg-quality-introduced` advisories from the two fixture SVGs),
+  `artifact=out/hello.pptx`, `compat=standard`. `--strict` is red on exactly those advisories,
+  which the upstream gate itself calls non-blocking; the fixture keeps the explicit authoring
+  form plan §3.4 allows. Where M8 puts the strict CI line (compact the fixture with the upstream
+  legacy migration script, or scope strictness) is left to that milestone with this evidence.
+- **Alternatives rejected:** parsing the engine quality verdict from stdout instead of the
+  recorded report (ADR-009); treating a missing artifact as a skip (the gate would pass on an
+  unrendered deck); promoting the advisory quality categories to errors (the engine maps them
+  as non-blocking, and the plan maps the gate, not its advisories, to errors); rasterising the
+  merged package for ΔE (no renderer here; COM would make the gate Windows-only and slow).
+
+## ADR-036 — Merge compatibility discipline: creationId renumbering, MCE migration, zip shape
+
+- **Date:** 2026-09-22
+- **Decision:** `mergeDeep` renumbers duplicate `p14:creationId` values in every merged
+  slide (`renumberDuplicateCreationIds`, exported) and reports the count as
+  `MergeReport.renumberedCreationIds`; `auditPackage` additionally rejects a package that
+  declares no content types at all. The MCE and zip rules need no new code: they are
+  properties of the merge and are pinned by tests.
+- **Renumbering rule.** The first occurrence of an id keeps it; later duplicates move above
+  the slide current highest id, in document order. It runs on every merged slide, replaced or
+  kept, so the result is deterministic and idempotent. Measured on a synthetic pair where the
+  deep slide carried [5, 5] and a kept base slide [3, 3, 9]: the merged slides read [5, 6] and
+  [3, 10, 9], with `renumberedCreationIds = 2`.
+- **Why per slide.** `p14:creationId` identifies animation nodes inside one slide, and
+  upstream `template_validation.py` rejects duplicates there (plan §1.5). Real decks reuse
+  ids across slides, so a package-wide rule would rewrite valid files.
+- **MCE migration.** A slide-level replacement copies the deep page XML verbatim, so an
+  `mc:AlternateContent` pair cannot be split. The test pins the stronger claim: the block, its
+  `Requires` prefix and its fallback survive the merge, and the image relationship the block
+  wraps is imported and rewritten with it. The published package is re-checked by the compat
+  lint (ADR-034), which fails on any block without a fallback.
+- **Zip discipline.** The writer keys parts by name in a Map, so duplicate entries and
+  encrypted streams are impossible by construction; `tests/merge-discipline.test.ts` proves it
+  on the recorded `fixtures/golden/hello-merged.pptx`: unique entry names, file entries exactly
+  equal to `OpcPackage.names()`, no encrypted entry, one `[Content_Types].xml`. Directory
+  entries are legal — JSZip creates them for shared folders and OPC readers ignore them — so
+  the check asserts they are folder paths rather than rejecting them.
+- **Evidence.** Five new tests (two in `merge.test.ts`, three in
+  `tests/merge-discipline.test.ts`); the recorded golden deck passes the package audit with
+  the single-master invariant, and its five slides repeat no id.
+- **Alternatives rejected:** renumbering package-wide (breaks legitimate cross-slide reuse);
+  renumbering into a dense sequence from 1 (collides with ids in other slides and with the
+  next engine export); refusing the merge on duplicates (plan §1.5 says the bridge inherits
+  upstream rule by fixing the ids); forbidding directory entries (contrary to what JSZip and
+  PowerPoint write).
+
+## ADR-037 — Compat goldens for all three levels, and the fixtureVersion 2 re-record
+
+- **Date:** 2026-09-22
+- **Decision:** `fixtures/golden/compat-levels.json` records one stable snapshot per level
+  (`counts`, `occurrences`, `applied`, `findings`; no timestamp) at the same fixtureVersion as
+  `golden-manifest.json`. `pnpm fixtures:record` writes it from the freshly rendered merged
+  package; `pnpm fixtures:verify` recomputes the pass over that package at each level, compares
+  the snapshot, and asserts the level promises: no `p159:morph` at `safe`/`standard`, no 2016+
+  chart element at `safe`, no 2019+ chart element below `max`, and no lint finding at any level
+  (MCE pairs complete, every `asvg:svgBlip` carrying its raster sibling).
+- **Why the pass and not three more renders.** The level is applied after the merge, so running
+  it over the recorded merged package covers M4.11 without three extra deep renders (minutes of
+  CI per verify). The render plumbing itself is unit-tested (`resolveCompatLevel`) and was
+  exercised end-to-end at `safe` in ADR-034 evidence, where `out/manifest.json` recorded
+  `level: "safe", levelSource: "flag"`.
+- **The re-record (item ⑤b) is fixtureVersion 1 → 2.** The p03 deep page now declares
+  `lang="en"` because the quality gate asks the first page for a deck language; the advisory
+  count drops from five to four. The exported packages are canonically unchanged: the recorded
+  deep digest `ef8d92de…` and merged digest `4a09d5c9…` are identical to fixtureVersion 1, and
+  only the engine timestamp bytes moved. `fixtures:verify` reports canonical equality for all
+  three artifacts plus all three compat snapshots equal, and PowerPoint COM opens the new
+  merged golden with five slides. A version bump with no semantic change is exactly the T1/T2
+  behaviour plan §7.2 asks for.
+- **The remaining four warnings, and the strict line.** They are the upstream `introduced`
+  style advisories on the two deep pages ("noncanonical compact authoring"). The upstream gate
+  itself calls them advisory and explicitly allows the explicit form, so `--strict` is red by
+  design for this fixture; the non-strict gate is green with 11 sources. M8 decides between
+  compacting the fixture with upstream legacy migration script (which hoists inheritable
+  attributes and would change how `deriveSpecLock` reads typography) and scoping the strict CI
+  surface. The audit names the warnings instead of hiding them (ADR-035).
+- **Evidence.** `pnpm fixtures:record` wrote fixtureVersion 2: base 29206 B (byte-identical to
+  v1), deep 21153 B, merged 36251 B, plus the three level snapshots. `pnpm fixtures:verify`
+  green; `tests/compat-levels.test.ts` (3 tests) pins the recorded snapshots and the level
+  assertions; `tests/merge-discipline.test.ts` pins the package shape; COM smoke `[OK] … 5
+  slides`; the suite is 225 tests.
+- **Alternatives rejected:** three full renders in the verify script (redundant cost for a
+  post-merge pass); snapshotting the reports without the level assertions (a snapshot of a
+  pass that silently stopped enforcing a level would still compare equal); dropping the
+  advisories from the audit (they are real upstream signals, and `skipped`/warnings are how
+  this repo keeps gaps visible); compacting the fixture now (an upstream legacy migration whose
+  hoisting changes our spec-lock derivation — an M8 decision with this evidence).
+
+## ADR-038 — M5 opens with the native round trip, template routing and brand extraction
+
+- **Date:** 2026-09-22
+- **Decision:** three new engine contracts and three commands land first, because they are
+  the offline-provable half of M5 and the rest of the milestone builds on them:
+  `deep native roundtrip` (`pptx-to-svg --roundtrip --inheritance-mode both`),
+  `deep template create|apply|register` (`pptx-template-import` →
+  `mirror-template-materialize` → `apply-template` / `register-template`), and
+  `brand extract` (pptwise `brand extract`, plus `--bind` = write the theme into the deck,
+  repoint `deck.fusion.json`, run `theme ensure`).
+- **Round trip.** The engine help states that `--roundtrip` requires `--inheritance-mode
+  both`; the argv builder refuses the mismatch before spawning, and publishes
+  `authoring-svg-flat/` as the editable source. Measured on `fixtures/golden/hello-merged.pptx`:
+  five slide SVGs plus `analysis/native_structure.json` and `sources/source.pptx`. The
+  workspace is what `apply-template` accepts directly as an exact root.
+- **Template routing is two different workspaces, and the distinction is the engine rule.**
+  `mirror-template-materialize` publishes only from a `pptx-template-import` reference
+  workspace (`svg/` + `inheritance.json`), while an SVG round-trip workspace is consumed as
+  an exact root by `apply-template`. The first attempt wired materialisation to the round-trip
+  output and the engine rejected it (`Cannot read inheritance graph: …/svg/inheritance.json`);
+  the fix was `pptx-template-import` as its own contract, with the round-trip workspace kept
+  for editing and direct application. Measured: create from `hello-base.pptx` wrote five
+  template SVGs, five text-slot files, `source_themes.json`, `native_payloads.json.gz` and a
+  Design Spec TODO; `deep template apply --dry-run` then planned 14 files into a deep project
+  and the real run installed them and wrote `template_install.json`.
+- **Known engine limitation, recorded rather than worked around.** Materialising a template
+  from an *animated* import fails inside the engine with `animation-not-reconstructed: 2`
+  (the merged golden deck carries two post-pass timelines the importer cannot map back to SVG
+  groups). Non-animated sources work. The fusion does not paper over it with
+  `--skip-validation`; the SKILL (M6) must tell the model to build templates from the
+  pre-animation deck and to keep animated decks on the round-trip/edit path.
+- **Brand extraction linkage.** Measured end to end on this machine (no network needed):
+  `brand extract out/base.pptx --dir <deck> --bind .` wrote `brand.theme.json` (theme id
+  `brand`, extracted by pptwise from the recorded golden base deck), repointed the manifest to
+  `{file: "brand.theme.json"}` and derived `tokens.json` with `themeId: brand` and
+  `source.kind: file`.
+- **Path rule.** Every new command resolves its arguments against the deck workspace, not the
+  process directory, and refuses escapes (`PathOutsideWorkspace`); this caught two
+  implementation bugs during the first real runs (`fs.exists` on a workspace-relative path, and
+  a doubled path when `--bind` pointed at the workspace root).
+- **Evidence.** Thirteen new tests: four engine-contract cases (round-trip pairing, import
+  flags, apply roots, register flags), three round-trip, four template, three brand; plus the
+  real runs above. `tests/support/fake-venv.ts` installs the venv files the engine manager
+  checks, so command tests reach the spawn without a real engine.
+- **Alternatives rejected:** wiring mirror materialisation to the round-trip output (the engine
+  rejects it); exposing `--skip-validation` to push the animated template through (hides a real
+  engine refusal the SKILL must know about); letting `--bind` resolve against the process
+  directory (inconsistent with every other deck command and untestable); treating
+  `register-template` as backlog (a template that is never registered cannot be reused, and the
+  contract is already recorded).
+
+## ADR-039 — The source pipeline: five routes, a fail-closed URL policy, and a size cap
+
+- **Date:** 2026-09-22
+- **Decision:** `dsh-ppt source <input...> -o <dir>` converts the five plan routes
+  (pdf/docx/xlsx/pptx/web, plus Markdown and plain text) through the engine unified
+  `source-to-md` dispatcher, one call per input so each output name and receipt is
+  deterministic. `src/policy/url-policy.ts` gates every URL before a process starts.
+- **URL policy.** http(s) only, no credentials, port 80/443, at most 2048 characters, local
+  names refused before DNS, and **every** resolved address must be public: loopback, private,
+  link-local, CGNAT, multicast, reserved and unspecified IPv4 ranges, unique-local and
+  link-local IPv6, and IPv4-mapped forms of any blocked address. DNS failure fails closed, and
+  the fusion never passes `--allow-private-hosts`. The resolver is injectable, so the rules are
+  unit-tested without network.
+- **Size and MIME.** The written Markdown must be non-empty and at most 5 MiB; a larger
+  document is a `ContractViolation`. Byte-size and MIME limits on the *fetched* response stay
+  the engine responsibility, because the fusion never sees that response: `web-to-md` writes
+  Markdown and keeps remote images as links by default. Inventing a second fetcher to measure
+  MIME would duplicate the engine and add its own SSRF surface.
+- **Evidence.** Generated inputs (openpyxl workbook, PyMuPDF page, a hand-built DOCX, the
+  recorded `hello-base.pptx`, a text file) converted for real: `pdf 54 B`, `excel 360 B`,
+  `doc 78 B`, `pptx 488 B` (5 slides), `text 69 B`, plus one
+  `<stem>.conversion_profile.json` per route, all recorded in `sources/source-manifest.json`.
+  The web route is network-blocked on this machine: `example.com` passed the policy (public
+  DNS answer) and then failed inside the engine with curl error 28 — the honest offline
+  outcome. `localhost`, `10.0.0.5`, `::1` and mixed public/private DNS answers are refused by
+  the guard before the engine is reached, and the web golden stays blocked until network access
+  exists (a proxy would have to be configured outside the repository).
+- **Alternatives rejected:** letting the engine own URL policy (the fusion cannot then name the
+  refusal, and `--allow-private-hosts` would be one typo away); rejecting hostnames that
+  resolve to any private address only when the *first* answer is private (a split-horizon answer
+  would slip through); a bespoke downloader for MIME/size (duplicate fetch path, new SSRF
+  surface); treating a DNS failure as "allow" (fail-open).
+
+## ADR-040 — Image search records provenance, and refuses an unattributed image
+
+- **Date:** 2026-09-22
+- **Decision:** `dsh-ppt images search` wraps `image-search` with the fusion defaults
+  (`assets/` plus `assets/image_sources.json`), requires a filename (deriving one from the
+  query or the URL extension, because the engine demands one in single-query mode), validates
+  every manifest item before reporting success, and routes `--from-url` through the same
+  public-http policy as `source` (ADR-039).
+- **Attribution rule.** Each item must carry `filename`, `provider` and `license_name`, and
+  `attribution_text` whenever `attribution_required` is true; otherwise the command fails with
+  a `ContractViolation` naming the item and the missing fields. The engine manifest keeps its
+  own schema (`items[]` with author, licence, licence URL, source page, download URL, search
+  query, slide, purpose, measured dimensions); the fusion does not rewrite it, so upstream
+  provenance stays intact.
+- **Evidence.** The command path is measured end to end: a real `images search mountain
+  --provider openverse` reaches the provider and fails with the engine timeout against
+  `api.openverse.org` (this machine has no outbound network), while `--from-url
+  http://127.0.0.1/x.jpg` is refused by the policy before any process starts
+  (`UsageError source URL host 127.0.0.1 is not a public address`). Six unit tests cover the
+  happy path, the passthrough flags, the missing-licence and missing-attribution refusals, the
+  strict-mode re-check, the URL policy and a missing/unreadable manifest; a recorded golden
+  download stays blocked until network access exists.
+- **Alternatives rejected:** letting the engine own the attribution rule (it writes
+  `attribution_required` but does not fail a run whose text is missing); rewriting the engine
+  manifest into a fusion schema (loses upstream fields and breaks the engine append-only
+  contract); requiring the caller to always name `--filename` (the engine error is cryptic and
+  the query already implies a name); skipping the URL policy for `--from-url` (the same SSRF
+  surface as `source`).
+
+## ADR-041 — T2 was only true inside a two-second window: JSZip folder entries carried the clock
+
+- **Date:** 2026-09-22
+- **Decision:** `OpcPackage.write` pins the date of **every** zip entry to the fixed
+  `1980-01-01T00:00:00Z` it already used for part entries, instead of only passing that date to
+  `zip.file()`. Regression tests assert that all entries carry the fixed date and that two writes
+  separated by a 2.1-second sleep are byte-identical.
+- **What was wrong.** JSZip creates a folder entry for every path segment (`ppt/`,
+  `ppt/slides/`, …) and dates it with the wall clock. `write()` created a fresh JSZip per call
+  and only the part entries received the fixed date, so a package written twice inside the same
+  DOS-time bucket was identical and a write across a bucket boundary was not. DOS time has a
+  two-second resolution, which is why `mergeDeep > is byte-stable` and `applyPost > is idempotent`
+  passed most runs and failed roughly one in four.
+- **How it surfaced.** The M5 unit-test runs showed the two byte-stability tests failing
+  intermittently; a 200-write stress loop on one package reproduced it deterministically
+  (hashes changed at writes 22/79/178 and stayed changed until the next boundary). The fix makes
+  that loop produce exactly one hash across 60 writes separated by a 2.5-second pause.
+- **Scope of the old claim.** The T2 claim covered our own writer with fixed input, so the bug
+  was real but narrow: T1 (canonical) never saw it because canonicalisation ignores zip metadata,
+  and T3 was never claimed. The recorded `fixtures/golden/hello-merged.pptx` was written by the
+  buggy writer, so its folder entries carry a record-time date; canonical equality is unaffected
+  and the M5.6 re-record picks up the fixed writer. No golden bump is needed for the fix alone.
+- **Alternatives rejected:** post-processing the zip to rewrite folder timestamps (a second pass
+  over the archive for a one-line fix); dropping folder entries entirely with
+  `createFolders: false` (legal OPC, but Office writes them and the recorded artifacts already
+  have them, so keeping the shape is the smaller change); accepting the flake (a determinism gate
+  that fails one run in four trains people to ignore it).
+
+## ADR-042 — Motion breadth and narration: what PowerPoint actually accepted, and the two TTS blockers
+
+- **Date:** 2026-09-22
+- **Decision:** the post layer gains emphasis (`spin`, `grow-shrink`) and motion paths
+  (`right`, `down`) ported from ppt-master's MIT preset catalog, plus the standalone
+  `dsh-ppt post animate`; `dsh-ppt narrate` wraps `notes-to-audio` (+ `narration-sync
+  animations`) with an edge voice default and an offline voice list. The fixture motion now
+  uses emphasis and a path, so the golden moved to `fixtureVersion: 4`.
+- **The wrapper is the difference between showing and playing.** Inserting the catalog rows
+  verbatim made PowerPoint report each effect with the right duration but **zero behaviours**
+  (`MainSequence.Item(2).Behaviors.Count = 0`), i.e. nothing would animate. Comparing with
+  XML PowerPoint itself wrote showed the missing structure: a hold group, then the preset
+  `p:cTn` with `nodeType="clickEffect"` and a `p:iterate` element, then the behaviour. With
+  that wrapper the recorded golden reads back through COM as slide 3: fade entrance
+  (`type=10`, 2 behaviours, 0.4 s), spin (`type=61`, 1 behaviour, 1.0 s), path right
+  (`type=149`, 1 behaviour, 0.8 s); slide 4: wipe entrance (`type=12`, 2 behaviours) and
+  grow/shrink (`type=59`, 1 behaviour, 0.9 s). The entrance-only output is byte-identical to
+  the pre-M5 writer, which the unchanged entrance tests assert.
+- **`post animate` is the same pass, standalone.** It applies the deck config to the published
+  package, re-runs the compat pass at the deck level (a new path becomes a compatibility fact),
+  writes the package atomically and refreshes `out/compat-report.json` plus the compat/post
+  blocks of `out/manifest.json`. Measured: three unit tests cover replace-in-place, `--out`
+  and the three refusal paths.
+- **Narration has two blockers on this machine, both recorded rather than worked around.**
+  (1) `notes-to-audio` requires a per-slide notes roster (`<project>/notes/<exported-stem>.md`);
+  our deep projects have an empty `notes/` because the fixture SVGs carry no notes, and
+  authoring that text is the M6 workflow's job — so `narrate` refuses before spawning with that
+  instruction. (2) TTS needs the provider network; the machine is offline (the same block as
+  ADR-039/040). The engine also requires `--voice` for `edge`, so `narrate` defaults it from the
+  deck script (`zh-CN-XiaoxiaoNeural` for CJK, `en-US-JennyNeural` otherwise) using
+  `detectPrimaryLanguage`.
+- **Voices.** `docs/compat/voices.md` records the engine's curated offline list
+  (`notes-to-audio --list-common-voices`, captured on this machine: 14 zh/en voices).
+  `narrate --list-voices` prints it.
+- **Golden v4 (the M5.6 re-record, animation half).** fixtureVersion 3 → 4 adds the emphasis
+  and path blocks to the fixture motion: merged 36551 bytes, canonical `c893198f…`, base
+  byte-identical. `pnpm fixtures:verify` reports canonical equality and the three compat
+  snapshots equal, and the recorded golden carries the vendor wrapper above. The narration half
+  of M5.6 stays blocked on the two blockers named here; on a networked machine with an authored
+  notes roster, `dsh-ppt narrate` then `pnpm fixtures:record` completes it without code changes.
+- **Alternatives rejected:** shipping the catalog rows without the wrapper (COM proves nothing
+  would play); changing the entrance writer to the wrapper shape as well (risks the verified
+  pptwise output and is unnecessary); generating placeholder notes text in `narrate` (narration
+  text is model work, and a stub would make the golden a lie); requiring an explicit `--voice`
+  (the engine already has a curated default per language, and the deck knows its script).
+
+## ADR-043 — Narration lands: notes roster, embedded audio, and the merge bugs it found
+
+- **Date:** 2026-09-22
+- **Decision:** narration is a first-class M5 output: a deep page may carry `notes.md` beside
+  its SVG, `<deck>/narration/*.mp3` are embedded by the deep export
+  (`--recorded-narration narration --use-narration-timings`), and the golden moved to
+  `fixtureVersion: 5` with speaker notes, two narration audio parts and auto-advance timings.
+- **Network.** The user accelerator (SteamTools, PAC at `127.0.0.1:26561`) intercepts TLS with
+  its own root. The runner now inherits the standard proxy and CA bundle variables
+  (`http_proxy`/`https_proxy`/`all_proxy`/`no_proxy`, `requests_ca_bundle`, `curl_ca_bundle`,
+  `ssl_cert_file`, `node_extra_ca_certs`) when the user sets them; the fusion never sets them.
+  On this machine a bundle of certifi plus the accelerator roots lives at
+  `~/.dsh/ppt-fusion/certs/ca-bundle.pem` (logged in `~/.dsh/CHANGELOG-dsh.md`).
+- **ffprobe is required, exactly as the engine requires it.** `--use-narration-timings` reads
+  each audio duration with `ffprobe -show_entries format=duration -of json`, with no fallback;
+  the golden gate therefore installs ffmpeg on both CI legs (apt on Linux, choco on Windows).
+  This machine has no ffmpeg, so a machine-local shim
+  (`~/.dsh/ppt-fusion/bin/ffprobe.exe` → an imageio-ffmpeg static build) provides it; that is a
+  local workaround, not part of the repository.
+- **What the narration golden found.** Four real gaps, all fixed and covered by tests:
+  (1) the deep project already needed a notes roster and the exporter reads it by SVG *stem*, so
+  `deep-render` writes `notes/<roster-stem>.md`; (2) the merge closure never registered the
+  replaced slide in its mapping, so a notes slide back-reference imported a second copy of the
+  slide (the package then held 7 slides against a 5-entry `p:sldIdLst`); (3) imported media
+  relied on a hardcoded content-type list, so `narration2.mp3` had no content type — imported
+  parts now inherit the source package declaration; (4) notes masters carry their own theme,
+  which the closure used to drop, leaving a dangling relationship — themes referenced from a
+  notes master are imported now.
+- **Measured.** Real edge-tts audio through the proxy: 93600 B and 82224 B MP3s with SRTs; the
+  recorded merged deck is 196845 B with 61 parts, 5 slides, 1 master, 7 notes slides, 3 notes
+  masters, 3 themes, the native chart and both audio parts. `fixtures:verify` reports canonical
+  equality for all three artifacts plus equal compat snapshots; PowerPoint COM opens the golden
+  with 5 slides and no repair; `opc-invariants` passes with `masters=1`.
+- **Also verified with the accelerator on.** `source https://www.bing.com/` produced a real
+  2569-byte Markdown; `images search --from-url <pexels CDN jpeg>` downloaded a 5306x3770 image
+  and recorded `image_sources.json` with `provider: manual`, `license: unverified — direct URL`
+  and no attribution requirement. **Still blocked:** the no-key providers openverse and
+  wikimedia return 502 through this accelerator (it tunnels bing/pixabay/pexels hosts but not
+  those), and pexels/pixabay search needs an API key. Adding those domains to the accelerator
+  or supplying a free Pexels key completes the last acceptance row without code changes.
+- **Alternatives rejected:** keeping narration out of the golden until a networked CI existed
+  (the machine can do it now, and the golden is the evidence); setting proxy/CA variables inside
+  the repository (deployment facts belong to the user environment); hardcoding audio content
+  types in the merge (the source package already declares them); dropping the notes master theme
+  (leaves a dangling relationship PowerPoint would repair); scaffolding the engine animation
+  config to satisfy `narrate --sync` (the fusion owns motion in `post/animations.json`, ADR-032).
+
+## ADR-044 — The SKILL budget gate: prompt-audit thresholds, vendored links, and tiktoken
+
+- **Date:** 2026-09-22
+- **Decision:** `dsh-ppt skill audit [--json] [--strict]` wraps the engine's `prompt-audit` over
+  `skills/dsh-ppt-fusion/prompt_audit_manifest.json` (corpus `skills/dsh-ppt-fusion/**/*.md`
+  plus `python-assets/vendor/ppt-master/docs/*.md`). The gate's thresholds are the engine's own:
+  the manifest's ceiling is a fixed upper bound on o200k_base token counts, over-budget or any
+  deterministic error fails, and `--strict` makes warnings fail too; the fusion adds no second
+  policy layer. `dsh-ppt audit` now runs the same source (`prompt-audit`) instead of recording it
+  as skipped, and names it in `skipped` with the reason when the engine venv is absent.
+- **Measured.** 24 files, 109510 tokens against the 120000-token ceiling, 0 errors, 0 warnings.
+  Per-file budgets sit above the measured block and load sets cover the SKILL's 8-12 document
+  reference packs; the one cross-file exact duplicate (the language-neutral CLI roster shared by
+  `SKILL.md` and `SKILL.en.md`) is declared in `duplicates.accepted`.
+- **Vendored references.** The upstream wheel ships only `skills/ppt-master/scripts/docs`; the
+  referenced `references/`/`workflows/` trees are not in it and raw.githubusercontent.com is
+  unreachable through this machine's accelerator. The 22 vendored docs keep their content, but
+  relative links whose targets are outside the vendored subset were rewritten to absolute
+  `https://github.com/elvisw/ppt-master/blob/main/...` URLs; `python-assets/vendor/NOTICE`
+  records the edit and `manifest.json` the new hashes (upstream repository per the wheel's
+  `Project-URL`).
+- **Engine dependency.** The engine refuses `prompt-audit` without `tiktoken`, so
+  `python-assets/requirements.in`/`.lock` pin `tiktoken==0.14.0` plus its `regex` dependency;
+  the lock diff is additive (89 to 91 packages, no version churn) and `dsh-ppt doctor --repair`
+  installs it with the rest of the lock.
+- **Alternatives rejected:** a second budget policy in the fusion (the manifest already owns
+  the ceilings); making the deck audit fail when the venv is absent (a pure-pptwise deck must
+  audit on a consumer machine); keeping dangling vendored links (the audit's local-reference
+  check would stay red); leaving tiktoken out of the lock (the gate would be un-runnable after a
+  repair).
+
+## ADR-045 — Checkpoint and resume: model-authored state, read-only reporting, opt-in brief
+
+- **Date:** 2026-09-22
+- **Decision:** The SKILL writes `.dsh-ppt/checkpoint.json`
+  (`{version, phase, deck?, updatedAt?, artifacts[], gates{}, notes}`) at the end of every phase,
+  and `dsh-ppt resume <dir> [--json] [--write]` reads it. Resume never infers progress from the
+  filesystem or the model's memory: it validates the checkpoint, checks each claimed artifact,
+  reads `out/manifest.json` for the published `{file, sha256, bytes, slides}`, and prints the next
+  phase's entry commands. `--write` persists the same brief to `.dsh-ppt/resume.md`.
+- **Leniency.** The checkpoint schema ignores unknown keys (a model-authored file must not become
+  unusable over a stray field) but reports known-field violations with their path, like
+  `deck.fusion.json`. `phase` accepts `0`–`7` as a string or a number.
+- **Exit contract.** Missing artifacts make the report `ok: false` and exit 1; an unreadable
+  `out/manifest.json` is a `problem` inside an otherwise valid report; an absent or invalid
+  checkpoint is `OutputMissing`/`ContractViolation`.
+- **Alternatives rejected:** deriving the phase from file timestamps (checkpoint plus manifest
+  are the authority); letting resume write the checkpoint itself (the model owns the phase
+  narrative, and a tool that rewrites it could silently erase work); failing the report on a
+  malformed published manifest (the render command owns that file).
+
+## ADR-046 — The M6 model eval: shipped headless profile, isolated workspaces, rubric from the package
+
+- **Date:** 2026-09-22
+- **Decision:** `pnpm eval:run [--scenario <name>] [--attempts <n>] [--json]` runs every
+  `fixtures/scenarios/*.yaml` through DeepSeek Harness's shipped `headless` profile, at most
+  `maxAttempts` fresh sessions per scenario, and judges each finished workspace with
+  `tests/eval/rubric.ts`: the unified audit gate, slide count, per-slide text shapes, a single
+  slide master, native chart/table parts, image attribution, the checkpoint file, and a bound
+  theme file. The nine check meanings live in `fixtures/scenarios/rubric.json`.
+- **Isolation.** An attempt owns `tmp/eval/<scenario>/attempt-<n>/`: `work` is the agent cwd,
+  `home` is a fresh `DSH_HOME` (no machine-local patch layer or MCP servers), and `bin` holds
+  `dsh-ppt` shims that run this checkout's built `dist/cli.js`. The SKILL is mounted with
+  `skill-filesystem.customSkillDirs` through a generated `--patch` overlay, so the eval never
+  installs anything into the user's `~/.dsh/skills`.
+- **Model and permissions.** `DSH_HARNESS_ROOT` selects the harness source checkout (booted
+  through `tsx/esm`); without it an installed `dsh` is used. The profile's default model
+  (`deepseek-v4-flash`) runs with `DSH_PERMISSION_MODE=danger-full-access`, so an autonomous
+  session never blocks on an approval prompt; the key comes from `DEEPSEEK_API_KEY` or the
+  user's `~/.dsh/.credentials.yaml`.
+- **Metrics.** Wall time is measured by the harness. Turns, tool calls, failed calls, gate
+  failures, skill loads and checkpoint commands are recovered from the session log
+  (`$DSH_HOME/sessions/**/session.jsonl.zstd`; the CLI appends one zstd frame per event, so the
+  reader splits on the frame magic). The model's own summary is never the evidence.
+- **Pass line.** A scenario passes when every check passes. The 3/3 decision and any downgrade
+  level are recorded in `docs/m6-model-eval.md`; the harness exits non-zero unless all
+  scenarios pass.
+- **Alternatives rejected:** booting the user's `web` profile (machine-local patches and MCP
+  servers change the agent under test); installing the SKILL into `~/.dsh/skills` (an
+  unnecessary machine change); letting the model judge itself (a rubric read from the package
+  is repeatable and independent).
+
+## ADR-047 — M6 verdict: GO; brand fidelity fixed and confirmed
+
+- **Date:** 2026-09-22
+- **Decision:** The M6 model evaluation passes its plan 6.6 line: 3/3 scenarios produced
+  packages that pass the unified audit gate (topic-only 5 slides, doc-to-deck 6 slides with
+  four native charts, branded-template 4 slides), and the doc-to-deck package passed the
+  manual spot check (PowerPoint COM reads four editable charts with the brief's series values;
+  one slide master; the pixel audit finds no unknown colour; COM opens it unchanged). M7
+  may start.
+- **Measured.** topic-only 811 s / 133 tools / checkpoint phase 7; doc-to-deck 1104 s / 147
+  tools (two subagent calls) / three recovered gate failures / checkpoint phase 7;
+  branded-template 339 s / 88 tools / four slides / one recovered gate failure. Every session
+  stayed inside one turn. The only audit findings anywhere are warning-level `ea-font-slot`
+  compat advisories (CJK runs without an `a:ea` slot), outside this command surface.
+- **Brand-fidelity finding.** The branded-template session ran `brand extract --bind`
+  correctly, then edited the bound `brand.theme.json` into a different palette (#1E2A4A /
+  #F5C518 versus the extracted #4472C4 / #ED7D31). The manual spot check caught what the
+  file-existence check could not. The SKILL now forbids restyling a bound brand without
+  asking, and the next model round gains a rubric check comparing the bound palette with a
+  reference extraction of the staged input.
+- **Confirmation run.** The 21:17 session ended on `402 QUOTA: Insufficient Balance` (attempts
+  2-3 aborted the same way); the same key answered HTTP 200 at 23:29, so `pnpm eval:run
+  --scenario branded-template` was re-run and passed in one attempt: 352 s, 83 tools, two
+  recovered gate failures, nine checkpoint commands, checkpoint phase 7, audit ok. The bound
+  `brand.theme.json` colours equal a fresh reference `brand extract` field for field
+  (`#4472C4`/`#ED7D31`, full `chartPalette`), so the SKILL's brand-fidelity rule closed the
+  finding.
+- **402 handling.** A no-tool-call `402 QUOTA` is recorded as an infrastructure abort and is not
+  retried immediately; it pauses the gate rather than judging the model, as this episode showed
+  (the provider state was transient).
+- **Alternatives rejected:** a capability NO-GO from the branded-template result (its package
+  passes every error-level check, and the palette change was a deliberate edit rather than an
+  inability to run the workflow); triggering L2-L4 (the observed gaps are instruction and
+  environment, not context or phase-count ceilings); declaring M6 complete without the
+  confirmation run (the brand-fidelity rule has not been exercised by a model yet).
+
+## ADR-048 — Keyed image providers receive their keys; openverse/wikimedia stay unreachable here
+
+- **Date:** 2026-09-22
+- **Decision:** `dsh-ppt images search` passes `PEXELS_API_KEY`, `PIXABAY_API_KEY` and
+  `IMAGE_SEARCH_CONCURRENCY` through to the engine child. The runner is default-deny, so a key
+  reaches the child only because the command names it; with no key the engine still skips the
+  keyed provider.
+- **Evidence.** `PEXELS_API_KEY=test-key dsh-ppt images search ... --provider pexels` reaches
+  `https://api.pexels.com/v1/search` and fails with the provider's `401 Unauthorized` instead
+  of the engine's missing-key skip. Direct probes on this machine: `api.pexels.com` 401 and
+  `pixabay.com/api` 400 (both answering), while `api.openverse.org` and `commons.wikimedia.org`
+  time out directly and return 000/502 through the local accelerator.
+- **Accelerator state.** The Steam++ 2.6.9 proxy (127.0.0.1:26561) answers 000 for every host
+  including bing; restarting it needs elevation and the running executable is not at the path
+  in the uninstall registry, so no rule edit was applied. Its rule store is a MessagePack file
+  that cannot be authored blind.
+- **Consequences.** The last M5 image-search acceptance row is one key away: set
+  `PEXELS_API_KEY` (free at pexels.com/api) and run `dsh-ppt images search`; the recorded
+  `assets/image_sources.json` then carries `provider: pexels` attributions.
+- **Confirmed 2026-09-22 21:52.** With a user-supplied Pexels key the real search ran end to end:
+  `dsh-ppt images search "bird migration flock flying" --provider pexels` downloaded
+  `assets/birds.jpg` (1687676 B, 6000x4000 JPEG) and wrote `assets/image_sources.json` with
+  `provider: pexels`, `license_name: Pexels License`, `author: Satyabrata Maiti`,
+  `license_tier: no-attribution` and a complete attribution text. The M5 image-search row is
+  closed on the keyed path; no accelerator change was needed.
+- **Alternatives rejected:** editing the accelerator rules (unsafe, and the service does not
+  route those hosts); hardcoding a key into the repository or the eval harness (credentials
+  never enter the repo); treating the no-key providers as the only path (they are unreachable
+  on this network).
+
+## ADR-049 — `dsh-ppt preview`: pptwise pages plus the authored deep SVGs
+
+- **Date:** 2026-09-22
+- **Decision:** `dsh-ppt preview <dir> [-o <dir>] [--html]` runs pptwise `preview --html` over
+  the deck's IR into `.dsh-ppt/preview`, then replaces each deep page's placeholder SVG with
+  the authored `deep/<dir>/page.svg`, clears the manifest `placeholder` flag, sets
+  `deep: true`, and patches the self-contained viewer when its inline markup still matches.
+  The result reports overlaid pages, remaining placeholders and whether the viewer was
+  patched.
+- **Evidence.** On `fixtures/hello`: 5 pages written, 2 deep pages overlaid, the page-3 output
+  byte-identical to `deep/p03-native-chart/page.svg`, the manifest no longer marks pages 3/4 as
+  placeholders, and the viewer HTML contains the authored SVG markup. Unit tests cover the
+  overlay, a deep page with no authored SVG (reported as a placeholder) and a missing
+  manifest.
+- **Alternatives rejected:** a second renderer for deep pages (the authored SVG is exactly
+  what the exporter ships); leaving placeholders in the viewer (the card and the viewer would
+  disagree); regenerating `preview.html` from scratch (pptwise owns that format; a failed
+  patch is reported, never faked).
+
+## ADR-050 — The DSH plugin bundle: skill + preview tool + card, verified in a scratch profile
+
+- **Date:** 2026-09-22
+- **Decision:** The package is a DSH bundle: `dsh/index.js` (the package root export) registers
+  the `dsh-ppt-fusion` skill with a runtime preamble and the `dsh_ppt_preview` tool;
+  `dsh/client.js` is the lazy-CJS preview card; `cordis.patch.yml` is the bundle layer;
+  `dsh.bundle.patch`, `dsh.client.immediately`, `main` and `exports` are declared in
+  package.json. `pnpm prepack` builds and runs `scripts/check-pack.mjs`, which refuses a
+  tarball that misses any runtime file.
+- **Skill mounting.** The registered content is the SKILL body (frontmatter stripped) plus a
+  preamble mapping `dsh-ppt <args>` to `node <package>/dist/cli.js <args>` and pointing the
+  vendored reference paths at the package root; `resourceBase` is the package root so the
+  playbook's relative paths resolve inside an installed plugin.
+- **Verification (M7.5, ops discipline).** Scratch profile `~/.dsh/profiles/ppt-eval` (base +
+  web-app bundles): `dsh plugin --profile ppt-eval add -w link:<checkout>` updated
+  `dependencies` and `dsh.profile.bundles`; `--dump-config` showed the
+  `# == @dsh-ppt/dsh-ppt-flashmade` layer; booting on port 3098 logged no plugin skip line and
+  answered `GET /dsh-ppt/preview/does-not-exist` with 404, `x-dsh-ppt-preview: 1` and
+  `preview_unknown`; `remove -w @dsh-ppt/dsh-ppt-flashmade` removed both the dependency and the
+  bundle entry, left no `node_modules/@dsh-ppt`, and the linked checkout was intact. Backups
+  and the changelog entry live in `~/.dsh/CHANGELOG-dsh.md`; the browser card is the one check
+  a browser-less host cannot do.
+- **Alternatives rejected:** shipping the skill as a filesystem-only directory (a DSH_HOME
+  install is a machine change and stays invisible to `dump-config`); copying pptwise's plugin
+  verbatim (its CLI has no `assemble` step and no fusion render; identity and route would
+  collide); a from-scratch card protocol (the lazy-CJS card and its failure vocabulary are
+  battle-tested).
+
+## ADR-051 — M8 compatibility claims: T2 until the WPS row is signed off
+
+- **Date:** 2026-09-22
+- **Decision:** v1 release notes may claim tier T1: the user reported on 2026-09-22 that
+  the S17 WPS 2019+ checklist was executed and passed, recorded in `docs/compat/wps-report.md`
+  as user-confirmed (the concrete WPS build and per-item notes are to be captured on the next
+  real-machine run; a future failure reverts the claim to T2). The LibreOffice half of the compatibility
+  matrix runs in CI (ubuntu-latest installs `libreoffice-impress`; `pnpm compat:matrix`
+  converts every artifact and compares the PDF page count against the slide count), and a
+  machine without `soffice` reports that column as `skipped` rather than passing it.
+- **Evidence on this machine.** `pnpm compat:matrix`: 10/10 artifacts (golden, six theme
+  matrix decks, three model-eval decks) reopen in python-pptx with recursive shape/text/
+  table/picture/chart counts and pass `compat lint` at `safe`, `standard` and `max`;
+  `pnpm fixtures:verify` compares the three compat-level snapshots and the new pixel (delta E)
+  pass reports no colour outside the token palette; `scripts/win-com-smoke.ps1` opens the
+  golden, the offline render and the eval decks with no repair.
+- **Alternatives rejected:** claiming cross-Office compatibility from ZIP-level checks alone
+  (that is what the S16/S17 split exists for); letting `compat:matrix` pass when LibreOffice
+  is missing (the skipped column is explicit, CI enforces the conversion); publishing before
+  the WPS checklist (the plan's release rule reserves T1 for a signed-off WPS machine).
+
+## ADR-052 — The M8 matrices: six themes, a pixel gate, and the capacity probe
+
+- **Date:** 2026-09-22
+- **Decision:** `pnpm matrix:record/verify` snapshots six representative presets (`brief`,
+  `thesis`, `terminal`, `runway`, `heritage`, `ledger`) through `init -> validate -> render ->
+  audit`, recording the render receipt, the three canonical artifact fingerprints (base/deep/
+  merged) and the audit findings. `pnpm fixtures:verify` also runs the pixel pass now and fails
+  on any `palette-*` finding. `pnpm capacity:run` synthesizes a 60-page standard deck and
+  records wall time/bytes in `docs/capacity.md` as a manual guardrail.
+- **Measured-basis change.** All 24 presets own distinct page menus, and pptwise refuses to
+  rebind a deck between menus; a matrix that re-themed `fixtures/hello` therefore cannot
+  render. The matrix builds a minimal deck per preset instead, while the deep-page, narration
+  and pixel (delta E) paths stay covered by the golden fixture.
+- **Evidence.** `matrix:verify` green for all six; `fixtures:verify` reports `pixels clean (12
+  audit source(s), 4 finding(s))`; `compat:matrix` 10/10; capacity numbers in
+  `docs/capacity.md`.
+- **Alternatives rejected:** re-theming the hello deck (impossible across menus); authoring
+  deep pages per theme (cost without new signal); making the pixel pass a per-command CI flag
+  (the gate belongs to the fixture, where the deep SVGs live).
+
+## ADR-053 — The upstream upgrade drill: no newer patch exists, so drift detection is the rehearsal
+
+- **Date:** 2026-09-22
+- **Finding:** Both pins are already the newest release: pptwise 0.35.0 (the npmmirror version
+  list ends there) and ppt-master 0.1.128 (the Tsinghua PyPI index lists 121 releases, none
+  newer). There is no patch to upgrade, so the drill's "record the break points" step has
+  nothing to record yet.
+- **Decision:** The theme matrix treats the upstream pins as part of the snapshot identity, and
+  `tests/theme-matrix.test.ts` pins three drift failures (upstream version, theme snapshot,
+  schema version). `docs/upstream-drill.md` records the procedure for a future bump: bump the
+  pin, rebuild the venv, run `fixtures:verify` then `matrix:verify`, capture the differences in
+  an ADR and re-record with a raised fixtureVersion, or revert.
+- **Evidence:** the recorded matrix carries `upstream: {pptwise: '0.35.0', 'ppt-master':
+  '0.1.128'}`; the comparison unit test passes; `fixtures:verify` prints the recorded upstream
+  versions on every run and the matrix gate fails with a named problem on any drift.
+- **Alternatives rejected:** upgrading to an older patch to rehearse (artificial, no new
+  signal); re-recording fixtures against a hypothetical bump (nothing to record); leaving
+  detection to a human reading the verify log (the matrix gate now fails on drift).
+
+## ADR-054 — V5 sync: plan, README, architecture, acceptance-report, docs index
+
+- **Date:** 2026-09-23
+- **Decision:** The external plan file (not shipped with this repository) is advanced to
+  **v5**: M0–M8 are recorded as verified/complete from ADR-001…053, M9 as "prep done, two
+  items pending user" (npm publish channel and the real `web`-profile install), and the
+  remaining work is consolidated into plan §4.5's eight-item closing list. The repo docs are
+  re-synced in the same pass: `README.md` status banner now says M0–M8 verified / M9 prep
+  done; `docs/architecture.md` references plan v5 and ADR-001…054; this file's index gains
+  rows 044–054; `docs/acceptance-report.md`'s WPS paragraph is corrected to ADR-051's
+  decision (user sign-off on 2026-09-22 allows the T1 claim; capture the concrete WPS build
+  and per-item notes next run, and a future failure reverts to T2).
+- **Evidence:** `pnpm typecheck` exit 0 and `pnpm test` **314 tests / 43 files green** on
+  2026-09-23; git log from `616345e` (M4 part 1) through `0b2c75c` (M9 prep) records every
+  milestone; `docs/acceptance-report.md`, `docs/m6-model-eval.md`, `docs/capacity.md`,
+  `docs/compat/{matrix,wps-report}.md` and `docs/upstream-drill.md` exist and carry the
+  recorded evidence; `docs/decisions.md` carries ADR-001…054 with an index row for each.
+- **Alternatives rejected:** editing historical ADRs or old reports to reflect later facts
+  (records stay as written; v5 and this entry carry the consolidated view); declaring the
+  project fully closed (M9 publish and the real-profile install are user-gated and remain
+  open by design).
+
+## ADR-054 — Public identity: @dsh-ppt/dsh-ppt-flashmade on GitHub under Bingtang1019
+
+- **Date:** 2026-09-23
+- **Decision:** The published package name is `@dsh-ppt/dsh-ppt-flashmade` (the user asked
+  for `@dsh-ppt/dsh-ppt-FlashMade`; npm rejects uppercase in new package names, so the
+  registry form is all-lowercase and "FlashMade" stays the product name in prose). The
+  repository is published under `https://github.com/Bingtang1019/`. The plugin id, skill name
+  and CLI stay `dsh-ppt-fusion` / `dsh-ppt-fusion` / `dsh-ppt` so the workflow's documents,
+  the SKILL and every ADR keep referring to one name.
+- **Renamed surfaces.** `package.json` `name`, `cordis.patch.yml`'s bundle row, the client
+  module id in `dsh/client.js`, and the install/README/architecture/acceptance references. The
+  DSH plugin card label derives from the package name, so it now reads `dsh-ppt-flashmade`.
+- **GitHub installs.** `package.json` gained `prepare: pnpm build`, verified against
+  `github:Bingtang1019/dsh-ppt-fusion`: the installed copy carries `dist/cli.js` and the
+  scratch profile composes its bundle layer. Without it a git install would have no built CLI.
+- **Secrets policy.** `.gitignore` now also excludes `.env.local`, `*.pem|key|pfx|p12`,
+  `.credentials.yaml`, credential-shaped YAML, and release tarballs; `.npmrc` carries a
+  never-put-a-token-here comment because it is tracked. A history scan over every blob found
+  no provider key, npm token or credential value (the Pexels and DeepSeek keys were only ever
+  passed through process environment variables).
+- **Path sanitization.** The machine paths in tracked prose and engine logs were replaced with
+  placeholders (`<repo>`, `%USERPROFILE%`, `<runtime>`, `<backup dir>`) so the public repository
+  does not carry the developer's Windows user name; no evidence value was removed.
+- **Alternatives rejected:** publishing the mixed-case name (npm rejects it); renaming the
+  plugin/skill/CLI to FlashMade in the same step (breaks the plan's vocabulary and every
+  document for no functional gain); committing the machine's credential files (they live in
+  `~/.dsh` and stay there).
+
+## ADR-055 — First CI run: platform threading in the venv manager, host-measured `advTm`
+
+- **Date:** 2026-09-23
+- **Context:** The first four runs on the public repository (`35755350753`, `35755378986`,
+  `35755581330`, `35755733680`) failed on both legs at the same two steps: `ubuntu-latest` at
+  *Unit tests*, `windows-latest` at *Golden deck gate*.
+- **Decision (ubuntu leg).** `createVenvManager` gained an optional `platform` that reaches
+  `venvPaths` and `resolveUv`; `resolveUv` judges `DSH_PPT_UV` with the platform under test
+  (`win32.isAbsolute` / `posix.isAbsolute`) instead of the host's `path.isAbsolute`; the install
+  step creates the `venvs` directory with that platform's `join`; `runDoctor` forwards its
+  `platform`. `src/engine/venv.test.ts` builds its Windows expectations with `win32.join` and
+  passes `platform: 'win32'`, and `src/commands/doctor.test.ts`'s injected platform now reaches
+  the manager it exercises. `tests/support/fake-runner.ts` folds both separators when it
+  normalises a key (`path.replace(/[\\/]+/g, sep)`), so a Windows-shaped key registers its
+  parents through the host's `dirname` on the ubuntu leg instead of silently losing the venv
+  root. Before this, those tests passed only where `DSH_HOME` already held a provisioned venv
+  built by the same platform.
+- **Decision (windows leg).** Tier T1 canonicalisation normalises the `advTm` attribute. The
+  upstream exporter derives slide auto-advance from the narration audio with **the host's
+  `ffprobe`**; the recorded golden therefore carries the number this machine's probe reported,
+  while `choco install ffmpeg` on the runner reports a different float, so the deep package
+  differed on `ppt/slides/slide2.xml` alone. The gate still compares the attribute's presence,
+  the timing tree that contains it, and the audio parts byte-for-byte; only the measured number
+  is dropped, beside the producer timestamps already normalised for the same reason.
+- **Decision (ubuntu golden leg).** `normalizeXml` folds CRLF and CR to LF before any other
+  rule, which is what an XML 1.0 parser does with end-of-line sequences. The upstream exporter
+  writes its notes parts and relationship files with the host's line endings, so with that rule
+  absent the deep package differed on `ppt/notesSlides/notesSlide1.xml`,
+  `ppt/notesSlides/notesSlide2.xml`, `ppt/notesMasters/notesMaster1.xml` and
+  `ppt/slides/_rels/slide2.xml.rels` — by exactly the number of CRs those files carry inside
+  tags. A deck-wide CRLF→LF conversion of the recorded package now compares equal with zero
+  differences.
+- **Decision (diagnosability).** A mismatch now prints the first divergence of each differing
+  part with bounded context (`tests/support/canonicalize.ts:describePartDifference`). The failing
+  CI run named the part but not the value, which costs an extra round trip per environment.
+- **Evidence:** a local reproduction of the Windows failure — a probe reporting 14.4 s where the
+  recording saw 13.7 s — passes `pnpm fixtures:verify` (deep, merged, compat levels and pixels
+  green) after the change and failed on `ppt/slides/slide2.xml` before it; `pnpm test` is
+  **317 tests / 43 files green** on 2026-09-23, `pnpm typecheck` and `pnpm lint` exit 0; CI job
+  logs `106840890272` (ubuntu) and `106840889846` (windows) name the two failing steps.
+- **Known gap recorded here.** The delivered deck keeps the narration audio (`p:pic` plus
+  `ppt/media/narration*.mp3`) but not the engine's audio-driven advance timing: `bridge/post.ts`
+  is the single motion owner and rewrites transitions and timings. v1 narrates without
+  auto-advance; deriving the advance inside `post.ts` from a deterministic source and
+  re-recording is a v0.2 backlog item.
+- **Decision (ubuntu compat matrix).** `compat:matrix` reads the LibreOffice PDF page count with
+  `import pymupdf` — the old `fitz` alias writes a deprecation warning to stdout, which
+  `Number.parseInt` swallowed, so every artifact reported "PDF page count is unreadable" as soon
+  as the ubuntu leg actually reached step 17. The parse now takes the last non-empty stdout line,
+  the conversion runs with an isolated `-env:UserInstallation` profile, and a failure carries the
+  tool output and the PDF size. This branch had never executed: the local machine has no
+  `soffice`, so the rendering half was `skipped` until CI.
+- **Decision (CI engine provisioning).** The workflow provisions the engine venv with
+  `DSH_PPT_PYPI_INDEX=https://pypi.org/simple`. The package default stays the Tsinghua mirror
+  chosen for the development machine, but the runners get `403 Forbidden` from that mirror, so
+  provisioning failed on ubuntu (and succeeded intermittently on windows).
+- **Alternatives rejected:** re-recording the golden against the runner's ffprobe (fails again on
+  the next runner image update); shipping an `ffprobe` shim with the gate (Windows
+  `CreateProcess` does not execute `.cmd`/`.bat`, so it would need a compiled launcher committed
+  to the repository); removing narration from the golden deck (loses the embedding coverage that
+  the audio parts and media hashes carry).
+
+## ADR-056 — Published name: unscoped `dsh-ppt-flashmade`
+
+- **Date:** 2026-09-23
+- **Decision:** The npm release is published **unscoped** as `dsh-ppt-flashmade`, which supersedes
+  ADR-054's published name `@dsh-ppt/dsh-ppt-flashmade`: the account (`bingtang1019`) does not own
+  the `@dsh-ppt` scope on npmjs.com, and creating a scope for one package would add a second public
+  identity for no functional gain. The repository (`github.com/Bingtang1019/dsh-ppt-fusion`), the
+  plugin bundle id, the skill name (`dsh-ppt-fusion`) and the CLI (`dsh-ppt`) are unchanged; the DSH
+  plugin card label reads `dsh-ppt-flashmade` under either name.
+- **Registry-facing surfaces renamed:** `package.json` `name`, `cordis.patch.yml`'s bundle row,
+  `dsh/client.js`'s module id, and the install / README / guide / release / architecture /
+  acceptance-report references. Historical ADR text (ADR-050's evidence, ADR-054) stays as written;
+  this entry is the current authority for the published name.
+- **Evidence:** `npm publish --registry=https://registry.npmjs.org/` →
+  `dsh-ppt-flashmade@0.1.0` (shasum `0282a68a58b1d809e7e36a18f05cf9cd39ad4996`, integrity
+  `sha512-dSTDmmi1x+UZy4pJBxFsgf437wRS3CfIDUXTPRmcz95QA+z5F2Fi6dl36U7PmGFUtDr02D3D20h1tb1tCVRMxw==`,
+  81 files / 662.7 kB); `npm view dsh-ppt-flashmade version dist.tarball dist.integrity` returns
+  those values. The real `web` profile carries exactly one `dsh-ppt-flashmade` dependency and
+  bundle row after remove + add (`--dump-config` composes its layer, id `dsh-ppt-fusion`), and the
+  `ppt-eval` scratch profile installed `dsh-ppt-flashmade@0.1.0` **from the registry**, booted on
+  port 3098 and answered `GET /dsh-ppt/preview/does-not-exist` with 404 plus
+  `x-dsh-ppt-preview: 1` and `{"code":"preview_unknown"}`.
+- **Publish gates recorded:** the account has 2FA enabled, so CLI publishing needs an interactive
+  one-time password (`--otp`) or a granular access token with **All packages + Read and write +
+  Bypass 2FA**; two tokens without those settings failed `E403` ("Two-factor authentication … is
+  required", then "You may not perform that action with these credentials").
+- **Channels:** the release ships on both channels the plan's §8 names — the npm package above and
+  the GitHub Release `v0.1.0` (`target_commitish` `1f2bfa9`), whose asset
+  `dsh-ppt-flashmade-0.1.0.tgz` is the same bytes as the registry tarball (sha1 `0282a68a…`,
+  sha256 `9c437683…`). The upload procedure, including the Windows `--ssl-no-revoke` needed for
+  `uploads.github.com` (`0x80092013` revocation service offline), is in `docs/release.md` §2b.
+- **Alternatives rejected:** creating an npm org for the scope (a second public identity for one
+  package); documenting the scoped name while publishing unscoped (the docs must name what
+  `dsh plugin add -w` actually resolves).
+
+## ADR-057 — Preview tool renders inside the deck, then copies into the store (v0.1.1)
+
+- **Date:** 2026-09-23
+- **Context:** v0.1.0 shipped `dsh_ppt_preview` adapted from pptwise's tool, which invoked
+  `preview <target> -o <store>/<id>.partial --html`. The fusion CLI accepts only a deck-relative
+  output (ADR-026), so every card call died with `PathOutsideWorkspace`: the route answered, the
+  card never got a deck. Found while answering how to see the card, and reproduced against the
+  installed plugin (`createPreviewService(...).tool.execute({ target })` failed).
+- **Decision:** the tool renders into the deck's own `.dsh-ppt/preview` (the CLI's contract) and
+  copies `manifest.json`, `preview.html` and the manifest's page files into the preview store
+  (`~/.dsh-ppt/previews/<id>`); the store layout, HTTP route and card protocol are unchanged. A
+  bare pptwise IR target is rejected with a message naming what the fusion `preview` accepts, and
+  the tool description now says deck directory (or deck name) instead of IR file.
+- **Evidence:** after the fix, `tool.execute` minted preview `d918356f-d6ff-4038-b76f-b72061e60097`
+  (5 pages, 0 findings) and the store directory carried `manifest.json`, five page SVGs,
+  `preview.html`, `record.json` and `snapshot.ir.json`; the running app served
+  `GET /dsh-ppt/preview/<id>` with 200 + `x-dsh-ppt-preview: 1` and `<id>/html` with 200 (25,787 B,
+  no token required); `tests/plugin/plugin.test.ts` stays green. Shipped as **0.1.1**.
+- **Alternatives rejected:** letting the CLI write outside the deck (breaks ADR-026 and every
+  path assumption in the publish flow); having the card read the deck directory directly (the card
+  runs in a browser and must read the same-origin store).
+
+## ADR-058 — Deck-level chrome pass: native page-number field, footer/section, signature strip
+
+- **Date:** 2026-09-23
+- **Context:** V6 WP1 (plan §3). v0.1.1 decks had no deck-level chrome contract: a page number
+  appeared only where a layout happened to draw one (`pptwise` content pages), so the `hello`
+  deck numbered page 2 but not its deep pages, cover or ending, and no gate noticed (`O2` in the
+  feedback book).
+- **Decision:** `deck.fusion.json` declares a `chrome` block (`pageNumber` with `skipRoles`, four
+  anchor positions and `tokens` styling; optional `footer`, `logo`, `section`), and `pages[]` may
+  declare a `section`. One pass owns the shapes: `applyChrome` in `bridge/chrome.ts`, called from
+  `render.ts` after motion and before the compat scan, so standard and deep pages receive the same
+  chrome. Page numbers are **native fields** (`<a:fld type="slidenum">`, text `‹#›`), never literal
+  digits, so deleting or reordering pages keeps them right. Field ids are deterministic
+  (`SHA-1` seed → UUID-v5 shape) and shapes carry stable names (`chrome-page-number`,
+  `chrome-footer`, `chrome-section`), which makes the pass idempotent and byte-stable. The engines'
+  baked page numbers are removed by **signature** — bottom band, wide bar or right-half badge,
+  single 1–3 digit run, right-aligned, translucent fill (≤ 60000 alpha) — because their shapes have
+  generic names (`Text 8`); a body figure is left untouched.
+- **Evidence:** the demo deck (`tmp/preview-hello`, chrome: skip cover/ending, footer, two
+  sections) renders to `out/hello-chrome.pptx`: slides 1 and 5 carry one chrome shape (footer) and
+  no field, slides 2–4 carry exactly one `slidenum` field, the footer on every page and the section
+  on the two declaring pages; the layout's baked `02` bar is gone while a synthetic body `42`
+  survives (`chrome.test.ts`); identical geometry across pages, idempotent re-apply and two-run
+  byte equality are unit-tested; `pnpm test` is 340 tests / 44 files green, `typecheck`/`lint` 0.
+  `fixtures/golden` re-records as fixtureVersion 6 in WP1-P4.
+- **Scope note (logo deferred):** `chrome.logo` is parsed, validated (`chrome-logo-missing`) and gated
+  (`chrome-logo-part`), but the pass does not inject the picture yet; a deck that declares a logo
+  fails the audit until the injection lands in v0.2. Everything else in plan §3.1 ships.
+- **Alternatives rejected:** literal page numbers (wrong after any edit); stripping by shape name
+  (the engines use generic names); leaving layout chrome in place and adding nothing (the reported
+  defect); teaching each engine to emit chrome (deep pages are SVG-authored and would need the same
+  logic twice).
+
+## ADR-059 — Storyboard roles, the theme-menu allow-matrix and measured content budgets (V6 WP2 Q2)
+
+- **Date:** 2026-09-23
+- **Context:** Q1 made `deck.storyboard.json` mandatory and had `validate` prove its existence,
+  coverage and agreement with the manifest. Plan §4.2/§4.3 make two further promises mechanical:
+  every `layout` must come from the bound theme's menu and be legal for the page's `role`, and every
+  page's measured content must fit its `budget`. Without them the planning gate approved any file
+  whose shape looked right.
+- **Decision:** One role definition serves both contracts. `chromeRoleFor(slideType, slideKind)` in
+  `schema/fusion.ts` maps a content slide's `kind` (`data`/`evidence`/`fact`/`stat`/`chart`/`table`/
+  `kpi`/`metric` → `data`, `statement`/`quote` → `quote`) and everything else through the v0.1.2
+  type mapping; `storyboardRoleFor` delegates to it, and render, audit and `chromeFindings` now pass
+  `kind` as well, so the storyboard role requirement, the chrome skip rule and the audit cannot
+  disagree. Layout ids are `"<themeId>:<face>"` (a bare face pins implicitly to the bound theme);
+  `validate` reads the materialised theme file's `menu` (`layoutMenuPaths` understands the measured
+  `cover`/`chapter`/`ending`/`content.<kind>` shape and ignores unknown ones) and rejects a foreign
+  theme pin (`ADR-052` cross-menu rebinding), an unregistered face and a face whose menu slot the
+  role may not use (`ROLE_LAYOUT_MENU`: `data` → `content.data|fact|evidence`, `quote` →
+  `content.statement`, `content` → any `content.*`). Budgets live in `DEFAULT_BUDGETS` per role and a
+  page's own `budget` overrides them field by field; `schema/budget.ts` measures pptwise pages from
+  their IR slide (known text keys and item arrays; chart/table/image components by type; payload
+  labels such as series names and axis categories are native-object data, not narrative copy) and
+  deep pages from their SVG (`<text>` contents, `data-pptx-replace-with` markers, `<image>`);
+  over-budget pages fail as `budget-exceeded` with `page/role/measured/limit`. Thresholds are a
+  first version: Q4 re-measures them against the three eval scenarios and records any change in an
+  ADR.
+- **Skeleton and defaults.** When a theme file is readable, `init` materialises the theme first and
+  fills every skeleton page with the first face its role may use, so `init` still leaves a deck that
+  validates; `plan` does the same for an existing workspace. `unconfirmed` remains the placeholder
+  for a workspace with no readable theme (a brand-new draft); `validate` reports it as an
+  unregistered face, which is the honest message for "this page was never planned".
+- **Evidence.** `validate` on the `hello` fixture is green across 6 gates (manifest, ir, storyboard,
+  deep, theme, palette); probes show `storyboard-layout: layout "brief:nope" is not in the "brief"
+  menu` and `page 2 (content): words measured 19, maxWords limit 5`; `pnpm test` is 375 tests / 46
+  files, `typecheck`/`lint` 0; `matrix:verify` 6/6 equal and `fixtures:verify` fixtureVersion 6 green
+  without re-recording (chrome artifacts do not depend on the storyboard's role field);
+  `fixtures/hello` pages 3–4 declare `role: data` for their `kind: data|evidence`.
+- **Alternatives rejected:** validating faces through `pptwise layouts --json` alone (its
+  `slideTypes` are only `cover`/`chapter`/`content`/`ending`, which cannot separate a data page from
+  prose, and it says nothing about which menu the bound theme owns); baking the 24 preset menus into
+  a checked-in catalog (drifts from upstream, while `theme ensure` already materialises the exact
+  menu the deck renders with); keeping a second role mapping inside the storyboard module (the
+  chrome skip rule and the storyboard would drift apart); leaving `unconfirmed` legal (the gate would
+  approve an unplanned deck).
+
+## ADR-060 — Narration auto-advance is recomputed from the embedded audio (V6 Q5)
+
+- **Date:** 2026-09-23
+- **Context:** ADR-055 recorded the known gap: `bridge/post.ts` is the single motion
+  owner and rewrote every slide's transitions and timings, which dropped the exporter's
+  `advTm`; the merge also rebuilds `ppt/presProps.xml` from the base deck, so the
+  exporter's `p:showPr useTimings="1"` never survived either. The pinned 0.1.128 builder
+  writes `advTm = narration_lead_in + ffprobe_duration + narration_padding` (0.4 s start
+  floor + 0.5 s padding, read from its `svg_to_pptx` source).
+- **Decision:** post recomputes each narrated slide's advance from the audio bytes already
+  in the package. `src/bridge/audio.ts` sums MPEG frame durations (ID3v2/ID3v1 aware,
+  constant and variable bitrate) and post adds the exporter's own policy
+  (`NARRATION_LEAD_IN_MS = 400`, `NARRATION_PADDING_MS = 500`). No `ffprobe`, host or
+  network is involved, so the same bytes always produce the same `advTm`. A slide whose
+  audio cannot be measured keeps the recorded `advTm` instead of losing it, and a
+  configured transition keeps its effect while receiving the recomputed advance.
+  `ensureShowTimings` re-applies `useTimings="1"` after the post pass, but only when a
+  slide actually carries `advTm`, so non-narrated decks keep byte-level parity;
+  `out/manifest.json` records `showTimings`. The S23 gate in `tests/fixtures-verify.ts`
+  checks both halves on the fresh merged package.
+- **Deviation from the plan's wording (v7.2 §A2 and §6 S23).** The plan's acceptance says
+  `advTm ≈ 音频时长（±0.1s）`. The pinned exporter's own `advTm` is not the audio duration:
+  it adds its 0.4 s lead-in + 0.5 s padding (measured on both hello narrations — audio
+  15.600 s / 13.704 s, exporter `advTm` 16 500 / 14 600). The gate therefore asserts
+  `advTm = lead-in + frame-sum duration + padding` within ±0.1 s of the recompute, the
+  same relation the exporter applies; asserting "advTm equals the audio duration" would
+  fail the exporter's own deep package. Recorded here because the plan is the authority
+  and the next revision (v8) adopts this wording.
+- **Evidence:** `mp3DurationMs` reproduces the committed narration exactly (15 600 ms and
+  13 704 ms); the post unit tests cover recompute, preserve-on-unreadable-audio,
+  config-override and idempotent `useTimings`; `fixtures/hello` re-records as
+  **fixtureVersion 7** with merged slides 3–4 carrying `advTm="16500"` / `"14604"` and
+  `presProps` `useTimings="1"`; `fixtures:verify` prints the S23 line; CI is green on both
+  platforms.
+- **Alternatives rejected:** preserving the exporter's `ffprobe` number (host-measured —
+  exactly the drift ADR-055 had to normalise away); probing again during render (same
+  drift); a sidecar duration list (a second source of truth beside the audio bytes);
+  hardcoding `duration + 900` without reading the bytes (breaks on VBR and ID3 framing).
+
+## ADR-061 — The design profile: numeric extraction of a reference deck (V7.2 B1)
+
+- **Date:** 2026-09-24
+- **Context:** V7.2's v0.3 aligns generated decks with a user reference deck at the design-system
+  level (palette, fonts, type scale, role geometry, chrome, background strategy). Appendix A of
+  the plan holds numbers from an ad-hoc analysis script, which is not a contract and not
+  reproducible. The reference deck itself is a local file that must never enter the repository or
+  the package.
+- **Decision:** `dsh-ppt design profile extract <ref.pptx> -o design-profile.json` runs
+  `python-assets/scripts/design-profile.py` under the engine venv's Python (where `python-pptx`
+  lives) and validates the result with the strict `DesignProfileSchema`
+  (`src/schema/design-profile.ts`). The profile carries numbers only — canvas EMU, palette hex,
+  font names, per-role title/body styles, per-role title anchor and column geometry, chrome
+  booleans and a background mode with overlay opacity. It never carries a run's text, a media
+  file or the input path. Roles are measured per slide (cover/ending by position, section by a
+  light ≥60 pt watermark, toc by ≥2 numeral runs on page 2, the rest content) with a `--roles`
+  override; the title is the largest dark run, the body the mode of the remaining dark runs,
+  palette entries are modes per category, and columns come from clustering body runs per slide
+  with a 1 in tolerance. `--copy-media` is off by default and, when on, copies into
+  `<output dir>/.dsh-ppt/design-media` — an ignored scratch directory, never next to the profile.
+- **Deck discipline (user constraint, 2026-09-23).** The recorded fixture
+  `fixtures/reference/profile.json` is ASCII-only and is the only file allowed under
+  `fixtures/reference/`; `.gitignore`, `scripts/check-pack.mjs` and
+  `tests/repo-discipline.test.ts` enforce that no deck, media or local profile reaches git or
+  npm. The S24 gate `pnpm design:verify` re-extracts the deck named by
+  `DSH_PPT_REFERENCE_DECK` and compares it field by field with the fixture; without that
+  variable (CI, other machines) it reports `skipped` and exits 0, like the LibreOffice half of
+  `compat:matrix`.
+- **Measured basis.** On the reference deck the extractor reproduces Appendix A for canvas,
+  every palette entry, the three fonts and all five role type rows (for example content title
+  36 pt `#0D0D0D` MiSans, section title 34 pt with an 85 pt watermark, accent `#577FD2`, number
+  font Noto Sans SC). Geometry is anchored to shape bounding boxes rather than the appendix's
+  text anchors, so the toc number column reads x=5.19 in where the appendix's text anchor says
+  4.88 in; the profile is self-consistent for B4's tolerance checks and Appendix A remains the
+  human reference. Two first-pass defects were fixed while recording it: numerals written as
+  `02.` were not recognised as toc rows, and column clustering pooled every content slide into
+  one count instead of aggregating per slide.
+- **Evidence:** `pnpm design:verify` prints `profile matches
+  fixtures/reference/profile.json (5 role(s), 5 type row(s))`; the fixture is byte-identical to a
+  fresh extraction through the real CLI and venv; `src/schema/design-profile.test.ts` (4 tests)
+  and `src/commands/design.test.ts` (5 tests) cover the schema, the venv runner, the media
+  scratch directory, the failure codes and the ASCII-only fixture; `typecheck`/`lint` are 0.
+- **Alternatives rejected:** parsing OOXML in TypeScript (duplicates python-pptx's text/geometry
+  work for no determinism gain); committing a synthetic copy of the reference deck (deck
+  discipline); recording text runs or per-slide text (leaks content and adds no design signal);
+  measuring with host tools such as ImageMagick (a second host dependency where the package
+  bytes already answer the question).
+
+## ADR-063 — The flaky CLI-surface test: one module import under a 30 s hook (V7 A0)
+
+- **Date:** 2026-09-23
+- **Finding:** the V7.2 snapshot recorded one failure in 378 tests —
+  `src/cli.test.ts > CLI surface > offers --json on every leaf command except version`,
+  "Test timed out in 5000ms" — with an immediate green re-run. Reproduced here in the second of
+  six consecutive full-suite runs (the other five green), so it is a load-dependent flake rather
+  than a one-off.
+- **Cause:** each of the three `CLI surface` tests awaited its own `import('./cli.ts')`. The first
+  import pulls the whole CLI module graph (commander, zod, every command module, the bridges) inside
+  vitest's 5 s default `testTimeout`; under parallel workers the transform/compile of that graph
+  intermittently exceeds it. The failure lands on whichever test pays the first import, which is
+  why a test that normally takes ~1.5 s can time out.
+- **Decision:** load the program once in a `beforeAll` with an explicit `30_000` ms hook timeout and
+  make the three assertions synchronous, so the expensive import has real headroom and runs once per
+  file. Numbers 060–062 stay reserved by V7.2 for A2/B1/B4 and 064 for B5.5.
+- **Evidence:** six consecutive full-suite runs after the change are green (378 tests / 46 files);
+  `typecheck` 0; `src/cli.test.ts` alone is 3/3 in 4.1 s.
+- **Alternatives rejected:** `retry: 1` (masks the same flake in CI and everywhere else) and raising
+  the global `testTimeout` (would hide genuine hangs in unrelated tests).
+- **Doc debt closed in the same work package:** the index gains row 059 (V6 WP2 Q2) and row `054b`
+  for the second ADR-054 (public identity); both historical bodies stay untouched.
+
+## ADR-065 — `serve` and `deep check|chart` are dropped, not carried (V7 A3)
+
+- **Date:** 2026-09-23
+- **Context:** `docs/cli.md` listed `serve` (M5) and `deep check|chart` (M3/M5) as
+  Planned since v1. Neither command was implemented, no current release path owns them,
+  and the plan's V7.2 §A3 asks for a decision at v0.2.0 close: implement them or remove
+  them from the planned surface.
+- **Decision:** remove both from the planned table. `dsh-ppt` teaches only implemented
+  commands, and `docs/cli.md` now says so explicitly; the CHANGELOG v0.2.0 change list
+  records the removal. Re-adding either requires a milestone that needs it and its own
+  ADR, exactly like any other documented surface change.
+- **Evidence:** `docs/cli.md`'s `## Planned` table carries no rows; the CLI test that
+  lists the taught surface (documented groups) stays green; no source registers either
+  command.
+- **Alternatives rejected:** implementing `serve` as a thin wrapper over `preview --html`
+  (a second viewer surface with no owner for its lifecycle, auth or port policy) and
+  `deep check|chart` as aliases of `deep render`'s internal steps (the underlying checks
+  already run inside the four-step gate, so the aliases would only add a second way to
+  report the same facts).
+
+## ADR-066 — Profile theming goes through the deck-local `theme.json`; `toc` joins the storyboard (V7.2 B2)
+
+- **Date:** 2026-09-24
+- **Measured fact.** pptwise writes standard pages with **explicit** colours and font
+  families (`srgbClr`, `<a:latin>`), never theme references, so editing the OOXML theme
+  part cannot restyle a rendered deck. However, pptwise resolves themes from the deck
+  directory first (`theme.json`, named theme files), then a workspace `themes/`, then the
+  factory presets. Experiment: a copy of the `brief` theme with a modified palette under
+  the deck directory kept the IR's `theme.id: "brief"` and rendered with the modified
+  colours and fonts. The deck-local file with the preset's id is therefore the sanctioned
+  custom-theme path, and it does not rebind menus (the menu is copied unchanged, ADR-052).
+- **Decision.** `dsh-ppt theme apply-profile <profile> --from <preset> [-o <file>]` writes
+  `<deck>/theme.json` by default: it materialises the preset only when the file is absent,
+  refuses an existing file whose id is not `--from`, and keeps the preset's id. The mapping
+  replaces `bg`/`surface`/`panel`/`primary`/`accent`/`text`/`muted`/`border`/`chartPalette`/
+  `cardStroke` and prefixes the font stacks with the profile's families. `emphasisInk` is
+  **omitted**: mapping it to the profile's white produced a 1:1 white-on-white
+  marked-run and pptwise's own validate rejected it, so the engine falls back to `accent`
+  (the profile gate now also requires accent/bg ≥ 3). `defaultBackgrounds` for
+  cover/chapter/content/ending become the profile's `bg`. `init --profile` materialises the
+  theme, patches it in place, re-derives `tokens.json`/`master-design.json` from the patched
+  palette, switches chrome to `{pageNumber: {show: false}}` when the profile has no page
+  numbers, and writes the storyboard from the patched menu. `toc` joins the **storyboard**
+  role vocabulary (not the chrome roles): a toc page is a content slide in the IR, the
+  storyboard may promote it, and it uses the content menu slots; page-number participation
+  stays with the coarse chrome role.
+- **Measured limitation and the font pass.** Installing the reference font is not enough:
+  pptwise 0.35.0 resolves a font stack against a hardcoded `SAFE_FONTS` allowlist
+  (`resolveFontFace`), so a theme that names MiSans still renders with a listed fallback
+  (measured before and after installing MiSans per-user: latin Georgia, EA Microsoft YaHei).
+  `render` therefore applies the profile's families itself when the manifest declares
+  `designProfile`: `bridge/fonts.ts` rewrites every paragraph's `a:rPr`/`a:defRPr`/
+  `a:endParaRPr` typefaces — runs at or above 28 pt take the heading family, large numerals
+  (≥ 32 pt, digit-only text) take the number family when one is declared, everything else the
+  body family, and the EA slot follows the same choice. The pass is idempotent, `post animate`
+  re-applies it after motion, `validate` rejects a declared profile that is missing or
+  invalid, and `out/manifest.json` records `design: {fontPass, typefaces}`. Measured with
+  MiSans installed per-user and the pass enabled: the published deck carries
+  `latin=MiSans ea=MiSans` on every run and `audit` stays at 0 error / 0 warning.
+- **Evidence.** S25 end-to-end on `tmp/profile-deck`: `init --profile` → `validate` OK 4
+  gates → `render` → rendered slide XML carries `#FFFFFF/#0D0D0D/#595959/#577FD2` plus
+  `latin=MiSans ea=MiSans` (font pass: 16 runs, 8 latin + 8 ea slots), `out/manifest.json`
+  records `design.typefaces: ["MiSans"]`, and `audit` reports 11 sources, 0 error, 0 warning.
+  Unit tests: `profile-theme.test.ts` (colour math, mapping, contrast failure),
+  `theme.test.ts` (materialise/patch/reuse/cross-menu refusal), `init.test.ts` (profile
+  theme + chrome + tokens + storyboard + validate + missing-profile finding),
+  `fonts.test.ts` (family mapping per size/numerals, idempotence),
+  `storyboard.test.ts` (toc role); 419 tests / 54 files green.
+- **Alternatives rejected:** rewriting every `srgbClr`/`typeface` in the merged package
+  (a second colour engine with no semantic mapping for charts, gradients and images);
+  giving the generated theme a new id (breaks the IR's preset binding and validate's
+  `theme-id-mismatch`); binding `{file: theme.json}` in the manifest (the IR id would no
+  longer resolve the deck-local file); adding `toc` to the chrome vocabulary (page-number
+  semantics for a toc page are content's; keeping the change storyboard-only avoids
+  touching the released chrome contract).
+
+## ADR-067 — Three asset channels (svg/office/user) and the post background layer (V7.2 B2.5)
+
+- **Date:** 2026-09-24
+- **Measured fact.** A Windows Office install ships no local icon gallery: `Office16`
+  carries UI assets (`LogoImages`, `sdxs` web bundles) rather than deck artwork, and
+  PowerPoint's modern icon set is cloud-hosted. What *is* on disk: `root\CLIPART`
+  (1651 WMF/JPG/GIF/BMP/PNG), `root\Templates` (`.potx`), and
+  `%APPDATA%\Microsoft\Templates\LiveContent` (32 `.thmx`). This machine's discovery
+  records 1689 assets (1651 clip-art + 38 theme) across seven probed roots; the record
+  is 340 KB. Copying `clip-art-pub60cor-j0400001` into a deck reproduces the source
+  bytes (sha256 `8032018b…`).
+- **Decision — three channels, no bundled library.**
+  - `office`: `assets discover --source office [-o <file>] [--json]` probes
+    `ProgramFiles`/`APPDATA` Office and WPS locations plus any
+    `DSH_PPT_OFFICE_ROOTS=<category>=<dir>` entries, records every probed root with its
+    per-format counts and the supported files, and fails `OutputMissing` with the
+    svg/user/flat fallback when nothing is found. The record lives at
+    `<DSH_HOME>/ppt-fusion/assets/office-assets.json`, not in a deck: it describes the
+    machine, and a deck must not carry an install path. `assets list|copy --source office`
+    read it and reject a record whose files disappeared (`discover` again), so the
+    recorded library never claims files that are gone.
+  - `user`: `DSH_PPT_ASSET_DIRS` (path list) or `<deck>/assets` when it carries
+    `asset-manifest.json`. The manifest requires a per-item licence; a missing manifest,
+    licence, supported format, escaping path, duplicate id or absent file is a
+    `ContractViolation`/`OutputMissing`. `assets copy` always lands inside the deck,
+    keeps `<id>.<format>`, refuses different existing bytes without `--force`, and treats
+    identical bytes as unchanged so reruns are idempotent.
+  - `svg`: generated, never shipped. `bridge/svg-background.ts` composes one deterministic
+    SVG per design role from blends of the profile's own colours (band, grid, ring,
+    content columns), so no off-palette ink can appear and reruns are byte-identical.
+- **Decision — one post background layer.** `render` applies the profile's
+  `background.mode` after motion and before chrome/compat: `flat` writes a solid `p:bg`
+  fill; `svg` inserts a full-canvas `<p:pic>` behind the authored shapes plus an overlay
+  shape whose alpha is `background.overlayOpacity`. Contrast is checked with the WCAG
+  math before anything is written and must stay ≥ 4.5:1 for the profile's title/body/muted
+  inks against every overlay-blended background colour, otherwise the render fails
+  `ContractViolation` instead of shipping unreadable text. The SVG picture carries the
+  `asvg:svgBlip` extension only; the existing compat pass (ADR for B7) rasterises it, adds
+  the `.png` sibling and points the main `a:blip` at the PNG, so Office 2013 and 2016+
+  both render the page (measured: `a:blip r:embed → …cover.png`,
+  `asvg:svgBlip r:embed → …cover.svg`, 2 stamps for 2 slides). `photo`, `office` and
+  `user` backgrounds need an explicit asset reference the profile does not carry yet, so
+  they apply the flat colour and record the fallback in
+  `out/manifest.json#design.background.notes`; B4 adds the reference and its audit rule.
+- **Evidence.** S28 on `tmp/bg-svg` and `tmp/bg-flat`: both render; the SVG deck contains
+  `dsh-bg-cover.svg` (709 B) + `dsh-bg-cover.png` (40 565 B) and the overlay
+  `<a:alpha val="15000"/>`; `minContrast` 5.61:1; the flat deck has no media and a
+  `p:bg` solid fill. Two consecutive renders of the SVG deck produce the same sha256
+  (`79e89503…`). Unit tests: `assets.test.ts` (15) and `background.test.ts` (9, including
+  the compat stamp); full suite 443 tests / 56 files, lint, typecheck, `prepack` 19/19.
+- **Alternatives rejected:** bundling an asset library in the package (v7.2 cancels it:
+  copyright and tarball size); keeping `office-assets.json` inside the deck (ties a
+  machine-wide discovery to one deck and would let install paths leak into deck
+  repositories); rasterising SVG backgrounds inside the background pass (bypasses the B7
+  stamp and creates a second raster path); treating `Office16\LogoImages`/`sdxs` as icons
+  (those are application chrome, not deck artwork, and would ship brand marks into
+  user decks); guessing a `photo`/`office`/`user` background file (would fake provenance
+  and make the audit's mode check meaningless).
+
+## ADR-068 — Design language reference and the Phase 3/4 authoring rules (V7.2 B3)
+
+- **Date:** 2026-09-24
+- **Measured fact.** Before B3 the prompt-audit corpus was 109 752 / 120 000 tokens, but the
+  two session entries sat against their own ceilings: `SKILL.md` 2492 / 2500 and
+  `SKILL.en.md` 2250 / 2250. Phase 3/4 had no shared statement of the reference deck's type
+  scale, palette roles, role geometry or background priority; the new rules would have to be
+  added inside those entries, and raising their budgets would ratchet every session's context.
+- **Decision.** Add `skills/dsh-ppt-fusion/references/design-language.md` (1869 tokens) as its
+  own corpus file with a 2000-token `file_budgets` entry and a dedicated `generate.design`
+  load set (2000 tokens, incremental): type scale table, palette roles, role geometry
+  (cover/toc/section/content/ending title anchors, 2–3 content columns, card gap), the
+  background/asset priority `svg` → `user` → `office` → `flat` → `photo` → optional
+  `image-gen` with the overlay floor, licence rules (`asset-manifest.json`,
+  `image_sources.json`, office discovery record), and the chrome rules (declare once in the
+  manifest; no per-page furniture). Phase 3 of both session entries now requires a declared
+  `role` on every page (including `toc`) and points at the reference; Phase 4 lays standard
+  pages out with the same type scale and role geometry, and content pages use 2–3 column
+  cards. Both entries were trimmed to stay inside their existing budgets (final
+  `SKILL.md` 2492, `SKILL.en.md` 2245) rather than raising them; the roster duplicate
+  fingerprint in `duplicates.accepted` is re-measured for the new command list, and
+  `scripts/check-pack.mjs` now requires the reference in the tarball.
+- **Evidence.** `dsh-ppt skill audit`: 25 files, 111 616 / 120 000 tokens, 0 error, 0 warning;
+  `pnpm prepack` 20/20 required files; `pnpm test` 443 tests / 56 files, lint and typecheck
+  green. The reference names the same commands the roster teaches (`design profile extract`,
+  `assets discover|list|copy`) and does not advertise the B5.5 `image-gen` surface before it
+  exists.
+- **Alternatives rejected:** raising the SKILL budgets (a durable ratchet that every session
+  pays); folding the design language into `SKILL.md`/`SKILL.en.md` (no headroom, and it is
+  reference material every phase does not need); exempting the new file from the corpus
+  (`coverage.exempt` would hide it from the budget and duplicate gates); duplicating the
+  tables into both language editions (the prompt-audit corpus already penalises cross-file
+  duplication).
+
+## ADR-062 — Profile compliance audit (`audit --profile`), picture-contrast coverage and bare `srgbClr` literals (V7.2 B4)
+
+- **Date:** 2026-09-24
+- **Measured fact.** A design profile stores representative values (per-role title/body *modes*,
+  one title anchor per role, palette modes), not per-slide invariants: on the reference deck the
+  content titles sit at four different anchors and the extractor keeps one of them (0.59, 0.58);
+  the toc page's body mode is 20 pt/#595959 only because the 40 pt numerals split by font into a
+  minority tuple. A per-run audit that compares every run with the profile therefore contradicts
+  the profile's own measurement. Separately, the chrome and background writers emitted
+  `srgbClr val="#RRGGBB"` (the token and profile palettes carry the hash); OOXML's
+  `ST_HexColorRGB` forbids it, and the golden fixtures had recorded the invalid form.
+- **Decision — re-measured rules.** `audit --profile <profile>` reloads the profile and replays
+  the extractor's measurement in TypeScript (`bridge/design-audit.ts`) before comparing:
+  `design-role-title-font` (representative title/dominant body size ±1 pt, colour ΔE ≤ 3),
+  `design-accent-body-color` (dominant non-grey body colour ΔE ≤ 3), `design-role-geometry`
+  (representative title anchor ±0.05 in, column mode/limit, smallest positive card gap ±0.05 in
+  for toc/content), `design-section-marker` and `design-chrome-match` (booleans re-measured the
+  way the extractor measured them). Roles come from the storyboard/IR in a deck workspace; an
+  external package takes `--roles` or the extractor's hints. When `--file` resolves outside the
+  workspace the audit runs package-only (OPC + design) and names the workspace sources in
+  `skipped`, so the reference deck itself can be checked (S26).
+- **Decision — picture contrast by coverage.** `design-background-mode` measures the deck mode
+  from full-canvas pictures (`flat`/`svg`/`photo`; mixing SVG and raster is an error), requires
+  an SVG picture to carry a raster sibling (the compat stamp's output), checks `office`/`user`
+  picture stems against the loaded discovery record/manifests, and judges body-scale text
+  (≤ role body size + 2 pt) over picture pixels: at least 70 % of the pixels under the text box
+  must keep 4.5:1 after the overlay blend. A failure is an error when the page has an overlay
+  shape and a warning when it has none. The calibration is measured, not guessed: the reference
+  deck's worst body box reads 3.49:1 by mean colour but 33 % coverage, so a mean rule would fail
+  the quality bar; 70 % keeps the reference at 0 error while a dark photo under text still
+  fails.
+- **Decision — bare colour literals.** Every `srgbClr` writer strips the leading `#`
+  (`bridge/chrome.ts`, `bridge/background.ts`). The golden fixtures were re-recorded as
+  **fixtureVersion 8**; the only diff is `val="#…"` → `val="…"` in the chrome/background XML,
+  which the canonical and byte comparisons both show.
+- **Evidence.** Reference deck: `dsh-ppt audit tmp/ref-inspect --profile fixtures/reference/profile.json
+  --file <deck>` → `ok=true`, sources `pptx,design`, 0 error, one warning (page 8, 33 %
+  coverage). `pnpm design:verify` covers S24 (field comparison) and S26 (profile audit);
+  `design-audit.test.ts` has 12 tests (wrong size/colour/accent/anchor/columns/watermark/chrome,
+  flat-vs-picture profile, missing PNG fallback, dark-picture error with overlay, warning
+  without); `fixtures:verify` fixtureVersion 8, `matrix:verify` 6/6 and the full `pnpm test`
+  suite are green.
+- **Alternatives rejected:** auditing every run against the profile (contradicts the profile's
+  mode-based summary and fails the reference deck); comparing the mean colour under text (fails
+  the reference's 84 %-compliant box) or requiring all pixels (fails its 33 % box); requiring an
+  overlay shape on every picture page (the reference has a baked wash and cannot be repaired by
+  the audit); skipping the reference self-check (S26 is the proof the tolerances describe a real
+  deck); leaving the `#` in `srgbClr` (invalid OOXML, tolerated only by PowerPoint's repair
+  path).
+
+## ADR-069 — Reference-quality split: scenario/rubric landed; the profile design pass is the S27 prerequisite (V7.2 B5a)
+
+- **Date:** 2026-09-24
+- **Measured fact.** The reference profile expects the cover title at 44 pt on
+  (0.69, 3.08) in, the content title at 36 pt on (0.59, 0.58) and the body at 14 pt; the
+  `brief` preset renders a cover title at 54 pt on (0.58, 0.58) and a content title at 45 pt
+  on (1.00, 1.48) with 18 pt body runs. pptwise IR carries no per-shape geometry (slides are
+  `type`/`kind`/`components`; layouts own positions and sizes), and `init --profile` maps
+  colours, fonts and the deck-local theme but not the profile's `typeScale`/`roles`; it also
+  writes only `pageNumber`, not the profile's `sectionMarker`/`metaFooter` chrome. A
+  model-authored preset deck therefore cannot satisfy the `design-role-*`/`design-chrome-match`
+  rules of S26 no matter how well the components are chosen.
+- **Decision.** Split B5. **B5a (this entry, landed with the scenario):** add the
+  `reference-quality` scenario (12 pages: cover, toc, 4 × section+content, ending; staged
+  `design/design-profile.json`; task says the reference photos are not copyable, so the deck's
+  profile copy switches `background.mode` to `flat` or `svg`, and every storyboard page declares
+  its role) and the `design-profile` rubric check: the harness re-runs
+  `audit --profile <deck>/design-profile.json` after the normal audit and fails the attempt on
+  any error-level `design-*` finding. **B5b (next):** implement the profile design pass that
+  renders the profile's standard-page language before the font pass — representative title size,
+  colour and anchor per role, dominant body run size/colour with accent runs preserved, content
+  card columns re-spaced to the profile gap, and the profile's section/meta-footer chrome; deep
+  pages stay model-authored against the SKILL and are judged by the same audit. Only after B5b
+  run `pnpm eval:run --scenario reference-quality`, write `docs/quality.md` (3-sample 1–5
+  baseline) and produce the `tmp/quality-demo` package/preview/audit JSON for S27.
+- **Evidence.** `reference-quality.yaml` loads through the harness, the rubric now carries 14
+  checks in stable order, `design-profile` is an error gate that passes only when the profile
+  audit finds no design error, and `tests/eval/rubric.test.ts` (13 tests) covers the absent
+  profile and the drift message. Full `pnpm test` remains green.
+- **Alternatives rejected:** loosening the S26 tolerances until a preset deck passes (the
+  profile would stop describing the reference); copying the reference photos or shipping a
+  pre-baked reference deck (deck discipline and copyright); asking the scenario prompt to
+  hand-place every shape (the capability must live in the toolchain, not in one task's wording);
+  auditing only plugin-generated pages (S26 audits the deck as delivered).
+- **B5b landed (2026-09-24 02:36, commit `6452634`).** `bridge/slide-text.ts` now owns the
+  extractor-shaped parsing shared with the audit, and `bridge/design-pass.ts` applies the
+  profile to the standard pages before the font pass: representative title size/colour/anchor
+  (title-size runs only, so a shared subtitle stays body-sized), dominant body size/colour,
+  accent recolouring, card-gap re-spacing (panels move with their text column), an existing
+  section watermark resized or a new one inserted, and the cover/ending meta footer taken from
+  the IR organization/author. `chromeRoleFor('chapter')` maps pptwise chapter slides to the
+  section role, and `render`/`audit` prefer the storyboard roles (toc included) over the coarse
+  IR roles. Evidence: the 3-page cover/chapter/ending probe audits `ok=true`, 0 error / 0
+  warning against the fixture profile; `design-pass.test.ts` covers title/body/accent/gap/
+  marker/footer and leaves deep pages untouched; the full suite is 460 tests / 58 files and the
+  fixtures/matrix gates stay green.
+
+## ADR-064 — Optional image generation behind `DSH_PPT_ENABLE_IMAGE_GEN`, with mandatory provenance (V7.2 B5.5)
+
+- **Date:** 2026-09-24
+- **Measured fact.** The engine ships `image-gen` (`ppt-master image-gen "<prompt>" --backend
+  {gemini|openai|…} [-o dir] [--filename F] [--aspect_ratio R] [--image_size S]`), reads its
+  backend from `IMAGE_BACKEND` plus provider-specific `{PROVIDER}_API_KEY`/`_BASE_URL`/`_MODEL`
+  knobs, and deliberately ignores the generic `IMAGE_API_KEY`. ADR-013 had excluded the command
+  entirely; this machine has no `GEMINI_API_KEY`/`OPENAI_API_KEY`, so a live generation cannot
+  be run here.
+- **Decision.** `image-gen` joins `REGISTERED_ENGINE_COMMANDS`, but the command layer gates it:
+  `dsh-ppt images generate` fails `ContractViolation` unless `DSH_PPT_ENABLE_IMAGE_GEN=1`, and
+  prints the asset fallback order `svg → user → office (when discovered) → flat → photo (images
+  search)`. The two exposed providers map to engine backends `gemini` and `openai` (the
+  `openai-compatible` name covers proxies via `OPENAI_BASE_URL`); with the flag on, a missing
+  `GEMINI_API_KEY`/`OPENAI_API_KEY` is a `UsageError` with the same order. Only `IMAGE_BACKEND`
+  and that provider's key/base/model/output knobs enter the child environment; ADR-013's
+  exclusion is narrowed exactly for this enabled extension, and the render path never calls it.
+- **Provenance.** Every generated file is recorded by the fusion in `<output>/image_sources.json`
+  with `provider: ai-image-<provider>`, the prompt summary, width/height, `license_name:
+  "AI-generated content (review required)"` and attribution text asking for human review; the
+  same file name replaces its record, a different name appends, and an unreadable manifest is a
+  `ContractViolation` instead of being overwritten. A generated image is never returned without
+  that record. The eval harness's attribution reader was also corrected to the engine's
+  snake_case fields (`license_name`, `attribution_required`, `attribution_text`), which the
+  camelCase check would have mis-judged for any deck with images.
+- **Evidence.** `imageGenerate`/`imageGenCredentials` unit tests cover the argv, provider
+  mapping, validation and the per-provider environment lists (contracts suite 19 tests);
+  `images.test.ts` covers the disabled refusal and fallback chain, the missing-key refusal, the
+  engine call and credential env, the manifest replace/append rules and the no-image/unusable
+  manifest failures (12 tests). The real CLI refuses both ways on this machine; the live-call
+  half of S29 is recorded as skipped for lack of a provider key.
+- **Alternatives rejected:** enabling the extension by default (cost, keys and network would
+  become part of the render path); auto-selecting a backend (the engine requires an explicit
+  selection and provider keys differ); letting the engine write provenance (it does not know the
+  fusion's manifest contract); passing the whole environment to the child (credential leak);
+  keeping the harness's camelCase attribution check (false failures on every sourced image).
+
+## ADR-070 — v0.3.0 dual-channel release and the fixtureVersion 8 quality-alignment record (V7.2 B6)
+
+- **Date:** 2026-09-24
+- **Decision.** v0.3.0 ships the design-system alignment work (ADR-061/062/064/066/067/068/069)
+  on both channels from the same bytes. `package.json` moves to 0.3.0; `CHANGELOG.md` carries the
+  v0.3.0 notes, `docs/guide.zh.md` gains the profile workflow, and the WPS checklist adds rows 12
+  (profile theme consistency) and 13 (profile background) as pending.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.3.0`, tarball
+  847,668 bytes, 85 files, shasum `d354434ef86d22b40d6b8578cdd462ebd1d8af77`; the registry tarball
+  was re-downloaded and matched the shasum before release. GitHub: annotated tag `v0.3.0` (API tag
+  object `e05d64f0b142ab8d0c9044389845cef3e69cde9f` → commit
+  `5a1287d9f6f37bf16d74272707e4d58a074cae37`), Release id 394997486 with asset
+  `dsh-ppt-flashmade-0.3.0.tgz` (digest `sha256:a616af0169e2539377ee9b853098f97c4c225efbea2ecbd0359102c258dcf5ff`);
+  the downloaded-back asset's sha1 equals npm's, so the channels are byte-identical.
+  `fixtures/golden` is fixtureVersion 8 (the `srgbClr` literal fix of ADR-062);
+  `fixtures:verify`, `matrix:verify` 6/6 and the full suite (468 tests / 58 files) are green, and
+  the B5.5 commit's CI run is green on both platforms while the metadata commit's run is in
+  progress at this record.
+- **Known limits carried into the release.** `photo`/`office`/`user` backgrounds still need an
+  explicit asset reference (render falls back to flat and the profile audit reports the mode
+  mismatch); deep pages warn on MiSans ea slots/non-PPT-safe font stacks; the human checks
+  (S19, S23, S27, S28, WPS rows 11–13) remain pending on the user's machine.
+- **Alternatives rejected:** tagging before the metadata commit (the tagged tree would lack the
+  install/CHANGELOG/guide updates); releasing a locally built tgz instead of the registry bytes
+  (no third-party verification); shipping only npm (breaks the dual-channel rule of ADR-056);
+  declaring v0.3.0 as the v1 (the plan keeps v1 for after the human checks).
+
+## ADR-071 — Generated backgrounds land above the base page rectangle (V7.2 post-release fix)
+
+- **Date:** 2026-09-24
+- **Context.** The S28 review prep re-rendered the `svg` probe with the shipped code and rasterised it
+  through PowerPoint COM (Office 16.0 build 20326). Both pages exported blank, and the `svg` and
+  `flat` exports were byte-identical: the generated picture had been inserted behind every authored
+  shape, and pptwise opens each standard page with an opaque full-canvas rectangle (the theme
+  background) that covered it. A shape-level export still showed the picture, so generation and the
+  compat PNG stamp were intact; only the placement was wrong.
+- **Decision.** The background layer inserts the picture and its overlay just past a leading
+  full-canvas opaque rectangle (offset 0,0; extent within 2 % of the canvas; bare `a:srgbClr` solid
+  fill) and keeps inserting behind all content when the slide has no such rectangle. Chrome inserts
+  its markers at the end of the shape tree, so page numbers stay above the background.
+- **Evidence.** `src/bridge/background.test.ts` gains the leading-rectangle case (469 tests / 58 files
+  green); re-rendering `tmp/bg-svg` and exporting slide 1 through PowerPoint COM now shows the art
+  (`#EEF2FB` right band, `#FCFDFD` circle, `#FFFFFF` gradient start) where the pre-fix export was
+  white and byte-identical to the flat deck. `fixtures:verify` (fixtureVersion 8) and `matrix:verify`
+  6/6 are green after the fix; `design:verify` still skips without `DSH_PPT_REFERENCE_DECK`.
+- **Impact.** Only `svg` mode is observable today, because `photo`/`office`/`user` still fall back to
+  the flat colour (ADR-067); the same insertion path covers them once an asset reference exists. The
+  fix changes rendered bytes only for decks that request `svg`.
+- **Alternatives rejected:** deleting the base rectangle (it also carries layouts that rely on an
+  opaque page fill); putting the picture into `p:bg` (the opaque base rectangle would still cover it);
+  inserting above the last full-canvas rectangle (a later cover overlay would lift the background above
+  content); shipping the defect as a documented limitation (S28 requires the generated background to
+  render).
+## ADR-072 — v0.3.1 patch release: the svg background fix on both channels (V7.2 post-release)
+
+- **Date:** 2026-09-24
+- **Decision.** v0.3.1 ships ADR-071 on both channels from identical bytes and supersedes v0.3.0 as the
+  latest release. `package.json` moves to 0.3.1; README, `docs/install.md` and the CHANGELOG carry the new
+  version; the local web profile moves to the 0.3.1 tarball.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.3.1`, tarball 851,113
+  bytes, 85 files, shasum `ecfa6deedbb82a8e1070343bf6502bb2bb881a84`; the registry tarball was downloaded
+  back and matched, and `dist-tags.latest` reads 0.3.1. GitHub: annotated tag `v0.3.1` (API tag object
+  `c644010ece4d0b7ed90c3c39763af48e427da140` → commit
+  `364d6d254ae9f705dbd5b268b2cbcdb1793cec8c`), Release id 395355340 with asset
+  `dsh-ppt-flashmade-0.3.1.tgz` (id 585222228, digest
+  `sha256:3e062cbaabed9165c3f09955854c1b5e2687260ed83dc788389f202e49fa3a7b`); the downloaded-back asset's
+  sha1 equals npm's, so the channels are byte-identical.
+- **Gates.** typecheck/lint, 469 tests / 58 files, `fixtures:verify` fixtureVersion 8 (including the S23
+  assertion), `matrix:verify` 6/6 and `prepack`'s 20-file pack check are green; CI run 35959111376 for
+  `364d6d2` is green on ubuntu and windows.
+- **Known limits.** `photo`/`office`/`user` backgrounds still fall back to flat until the profile carries
+  an asset reference; deep pages keep the MiSans ea-slot/non-PPT-safe warnings; the human checks (S19/S23
+  now carry PowerPoint COM evidence, S27 scores, S28 look, WPS rows 11–13) remain user-side.
+- **Alternatives rejected:** shipping the v0.3.0 background behaviour as a documented limitation (S28
+  requires the generated background to render); a source-only fix without a release (npm users would keep
+  the blank background); tagging the fix commit instead of the metadata commit (the tagged tree would lack
+  the version, README and install updates).
+## ADR-073 — Toc pages keep their authored title anchor (S27 page-2 fix)
+
+- **Date:** 2026-09-24
+- **Context.** The user's page-by-page S27 review scored the `reference-quality` toc page 2/5 and located
+  the cause: text hidden behind the four cards (not the card layout, which the user judged fine). The
+  deck shows it exactly: the design pass moved the page title to `profile.roles.toc.titlePos`, and that
+  geometry was extracted from the reference's `01.` number box (5.19 in, 1.79 in), so the 40 pt title
+  landed on the card row (panels start at 1.94 in) and painted under the panels. PowerPoint COM rendered
+  0 px of title ink in the old deck.
+- **Decision.** The design pass skips the title-anchor rewrite for `toc` pages and keeps the authored
+  anchor. Size, colour and body styling still come from `typeScale.toc`; every other role keeps the
+  profile anchor.
+- **Evidence.** `src/bridge/design-pass.test.ts` gains the toc case (the title offset stays at the
+  authored anchor while the profile's `titlePos` is 5.19/1.79); re-rendering the `reference-quality`
+  workspace produced a 69,882 B deck whose slide 2 title sits at (1.0, 1.2) above the cards, and the
+  PowerPoint render's title band now carries 3755 px of ink (0 px before).
+- **Impact.** Decks with a toc page change their rendered bytes on that page only.
+- **Alternatives rejected:** moving the title to the reference's `目录`/`CONTENTS` heading position
+  (0.92, 1.91 in) — it still overlaps the card row; restructuring the page as the reference's numbered
+  list or re-spacing the cards (the A/B prototypes) — the user reviewed the card grid and asked only for
+  the hidden text to be fixed.
+## ADR-074 — v0.3.2 patch release: the toc title fix on both channels (S27 P2)
+
+- **Date:** 2026-09-24
+- **Decision.** v0.3.2 ships ADR-073 on both channels from identical bytes and supersedes v0.3.1 as the
+  latest release. `package.json` moves to 0.3.2; README, `docs/install.md` and the CHANGELOG carry the new
+  version; the local web profile moves to the 0.3.2 tarball.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.3.2`, tarball 853,432
+  bytes, 85 files, shasum `55f08870b877b166bcdad93ce7e3450a1f1e4dcb`; the registry tarball was downloaded
+  back and matched, and `dist-tags.latest` reads 0.3.2. GitHub: annotated tag `v0.3.2` (API tag object
+  `17d701e1a4d8437e7894bc1dd4fbe4a7b307b512` → commit
+  `d96c3b3d1d1e6ec435028374e128a10224f0ee0a`), Release id 395383517 with asset
+  `dsh-ppt-flashmade-0.3.2.tgz` (id 585284974, digest
+  `sha256:96da9e70eca89b98314cfae4b765bd5e5cbbd627008a851a5afd529685576100`); the downloaded-back asset's
+  sha1 equals npm's.
+- **Gates.** typecheck/lint, 470 tests / 58 files, `fixtures:verify` fixtureVersion 8, `matrix:verify` 6/6
+  and `prepack`'s 20-file pack check are green; CI run 35962372321 for `d96c3b3` is green on ubuntu and
+  windows, as is the fix commit's run 35962178146.
+- **Known limits.** The remaining S27 pages scored 3 (4/6/11/12) are untouched; `photo`/`office`/`user`
+  backgrounds still need an asset reference; the P2 re-score and WPS rows 11–13 remain user-side.
+- **Alternatives rejected:** shipping the toc fix without a release (npm users would keep the hidden
+  title); folding it into a later feature release (the defect already failed a human acceptance item).
+## ADR-075 — Content pages are laid out as equal card columns (S27 P4/P6/P11)
+
+- **Date:** 2026-09-24
+- **Context.** The user's S27 review scored the three content pages 3/5. Their preset layouts mix a
+  6.7 × 4.33 in panel with two stacked 4.47 × 2.08 in panels, and the card text runs at 14 pt with
+  12 pt bodies and no accent colour; the reference content page is three equal 3.71 × 4.94 in columns
+  (x = 0.85/4.85/8.84) with 20 pt accent card titles and 14 pt bodies. The user approved a rendered
+  prototype of the equal-column layout before it was implemented.
+- **Decision.** On `content` pages the design pass detects card panels (text-free shapes at least
+  1.5 in², not full-canvas, not chrome/background), lays them out as `min(cardCount, columnsMax)`
+  equal columns with the profile's `cardGapIn`, and restyles each card's largest-run text as a 20 pt
+  accent card title (the design-language reference's value) and its remaining text as the role's body
+  style. Panels keep their authored fill; icons move to the card's top padding. Pages without two
+  card panels keep the previous gap-shift behaviour, and toc pages are untouched (ADR-073).
+- **Evidence.** `src/bridge/design-pass.test.ts` gains the card case (three panels become columns of
+  `(11.34 − 2 × 0.43)/3` in with 20 pt accent titles and 14 pt bodies); re-rendering the
+  `reference-quality` workspace reports `cards: 9` and produces 69,489 B, and slides 4/6/11 show panels
+  at x = 1.0/4.92/8.84 (3.49 × 4.33 in, gap 0.43 in), titles 20 pt `#577FD2` at y = 3.18 and bodies
+  14 pt `#262626` at y = 3.95.
+- **Impact.** Content pages of profile decks change their rendered bytes; card titles/bodies no longer
+  follow the preset's 14/12 pt scale.
+- **Alternatives rejected:** only re-spacing the existing asymmetric panels (the columns still did not
+  read like the reference); applying the 20 pt accent title to every 14 pt run (would have promoted
+  body text); trimming card panels to the reference's absolute column positions (breaks decks with
+  different margins or card counts).
+## ADR-076 — v0.3.3 patch release: content-page card layout on both channels
+
+- **Date:** 2026-09-24
+- **Decision.** v0.3.3 ships ADR-075 on both channels from identical bytes and supersedes v0.3.2 as the
+  latest release. `package.json` moves to 0.3.3; README, `docs/install.md` and the CHANGELOG carry the new
+  version; the local web profile moves to the 0.3.3 tarball.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.3.3`, tarball 860,622
+  bytes, 85 files, shasum `b84475644c5461b8449bb475c4d18da5bd1862b1`; the registry tarball was downloaded
+  back and matched, and `dist-tags.latest` reads 0.3.3. GitHub: annotated tag `v0.3.3` (API tag object
+  `2f5c42363c94bf1dfbc9bd18b3a2f33597d40ccb` → commit
+  `2bdd4d638fdb7ad81f1f77b1747b7afefe36a323`), Release id 395427814 with asset
+  `dsh-ppt-flashmade-0.3.3.tgz` (id 585382661, digest
+  `sha256:aa94ae6adde45754b45c65ea605b0fb513aae338ab8f8e359f680224dd765a5e`); the downloaded-back asset's
+  sha1 equals npm's.
+- **Gates.** typecheck/lint, 471 tests / 58 files, `fixtures:verify` fixtureVersion 8, `matrix:verify` 6/6
+  and `prepack`'s 20-file pack check are green; CI run 35967907122 for `2bdd4d6` is green on ubuntu and
+  windows.
+- **Known limits.** The ending page (P12, 3/5) is untouched; `photo`/`office`/`user` backgrounds still need
+  an asset reference; the human re-scores (P2/P4/P6/P11) and WPS rows 11–13 remain user-side.
+- **Alternatives rejected:** shipping the card layout without a release; folding it into a feature release
+  (three reviewed pages were already below the reference bar).
+## ADR-077 — Content titles clear the corner mark, and pages reserve illustration space
+
+- **Date:** 2026-09-24
+- **Context.** The S27 user review kept the content pages at 3/5 and named the cause: the theme's
+  top-left double-line corner mark (the `⇱` at 0.58/0.58 in, two 0.75 in arms) sits 0.01 in from the
+  content title, because the design pass moves that title to the profile anchor (0.59, 0.58 in). The
+  same review asked decks built without the optional image generator to leave room for an illustration.
+- **Decision.** A content-page title takes an 8 px (1/12 in) clearance down-right from the profile
+  anchor and one ladder step down — the next smaller title size in the profile's own type scale (36 →
+  34 on the reference profile). The profile audit compares content titles against those effective
+  values, stops comparing the toc title anchor (ADR-073), measures content card columns and gaps from
+  the card panels, accepts the `columns`–`columnsMax` range, and excludes design-language card titles
+  (accent at the fixed 20 pt) from the body mode. The design-language reference gains the
+  illustration-space rule: without `image-gen`, a content page keeps a ≥ 1/4-page area free (or fills
+  only two of three columns) so an illustration can be dropped in later; text must not fill it.
+- **Evidence.** Re-rendering the `reference-quality` deck puts the three content titles at
+  (0.673, 0.663) in at 34 pt while the card layout stays at `cards: 9`; the profile audit drops from six
+  design errors to the known flat-vs-photo background one. `design-pass.test.ts` and
+  `design-audit.test.ts` cover the stepped title, the skipped toc anchor, the panel gap/column
+  measurement and the card-title body exclusion. `skill audit` passes with the design file's ceiling
+  raised to 2250 tokens (25 files, 111,756/120,000).
+- **Impact.** Content titles are 2 pt smaller and 1/12 in lower-right of the profile anchor in every
+  profile deck; the audit's expectations move with them, so profile decks stay self-consistent.
+- **Alternatives rejected:** moving the corner mark itself — the title stays inside the mark's frame and
+  reads less like the reference; shrinking without the nudge — the mark still touches the glyphs;
+  enforcing the illustration space with a storyboard rule — authoring decisions belong to the budgeted
+  design reference and the SKILL checklist.
+## ADR-078 — v0.3.4 patch release: the title-clearance fix on both channels
+
+- **Date:** 2026-09-24
+- **Decision.** v0.3.4 ships ADR-077 on both channels from identical bytes and supersedes v0.3.3 as the
+  latest release. `package.json` moves to 0.3.4; README, `docs/install.md` and the CHANGELOG carry the
+  new version; the local web profile moves to the 0.3.4 tarball.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.3.4`, tarball 865,700
+  bytes, 85 files, shasum `0bad69c889ef350b170a757634d276b2c9f8c244`; the registry tarball was downloaded
+  back and matched, and `dist-tags.latest` reads 0.3.4. GitHub: annotated tag `v0.3.4` (API tag object
+  `0f75a85a069b5d17c869181c08d5f6e57c6f06c8` → commit
+  `4c3281213747dfb8609c926a4c9de9fea87a540b`), Release id 395451680 with asset
+  `dsh-ppt-flashmade-0.3.4.tgz` (id 585435070, digest
+  `sha256:52e3251b8e21c6b8c6a40fcf9dc2482c57b573cc2f38b2d0ba936729e3e6c85c`); the downloaded-back asset's
+  sha1 equals npm's.
+- **Gates.** typecheck/lint, 471 tests / 58 files, `fixtures:verify` fixtureVersion 8, `matrix:verify` 6/6,
+  `prepack`'s 20-file pack check and `skill audit` (25 files, 111,756/120,000, 0 error) are green; CI run
+  35970890135 for `4c32812` is green on ubuntu and windows.
+- **Known limits.** The ending page (P12, 3/5) is untouched; `photo`/`office`/`user` backgrounds still need
+  an asset reference; the S27 re-score (P2/P4/P6/P11) and WPS rows 11–13 remain user-side.
+- **Alternatives rejected:** shipping the clearance only in the pass without moving the audit expectations
+  (the deck would fail its own S26 gate); moving the corner mark instead (ADR-077's rejected option);
+  bundling the illustration-space guidance into a later feature release (the SKILL budget change belongs
+  with the fix that references it).
+## ADR-079 — DSH peer governance: declare the host packages on both runtime lines (V8 Part 0)
+
+- **Date:** 2026-09-25
+- **Context.** The plugin manifest had no `peerDependencies` at all. DSH 0.1.7 added an
+  install-time peer gate in `@deepseek-ai/dsh-app-boot` (`evaluatePluginCompatibility`):
+  it evaluates every `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` peer against the running
+  runtime (prereleases participating) and disables a mismatching plugin unless the profile
+  grants an exact `name@version` exemption in `compatibility.json` (written without a BOM).
+  The 0.1.2-rc.1 line predates the gate. The v9 plan's Part 0 requires the plugin to stay
+  installable on both lines before the render-QA work starts.
+- **Decision.** Declare the five host packages the plugin actually binds to:
+  `@deepseek-ai/dsh`, `@deepseek-ai/dsh-skill`, `@deepseek-ai/dsh-tools` and
+  `@deepseek-ai/dsh-client-ui-tool` at `>=0.1.2-rc.1 <0.2.0`, plus `@deepseek-ai/cordis`
+  at `^4.0.2`. Add `tests/dsh-peers.test.ts` (semver check against both pinned lines),
+  `scripts/dsh-compat.mjs` (runs the installed runtime's own gate, `--allow-missing-gate`
+  on pre-gate lines) and `scripts/dsh-compat-profile.mjs` (packs the plugin, installs it
+  into a scratch profile and asserts the composed tree carries the plugin layer). CI gains
+  a `dsh-compat` job matrixed over `0.1.2-rc.1` and `0.1.7-rc.2`.
+- **Evidence.** On this machine the unit test is green (3 tests); the 0.1.7 gate reports
+  `dsh-compat ok` while a negative control (`@deepseek-ai/dsh: ">=9.0.0"`) fails with the
+  runtime's own `pluginCompatibilityWarning`; the profile smoke composes the packed plugin
+  on both runtimes (`dsh-compat profile ok` 0.1.2-rc.1 and 0.1.7-rc.2). The probe record is
+  `docs/dsh017-probe.md`; acceptance rows S30–S32 are added to `docs/acceptance-report.md`.
+- **Alternatives rejected:** leaving peers empty (the gate cannot catch a future breaking
+  runtime, and the plugin would silently ride whatever host it lands in); exact pins like
+  the first-party extensions (the plugin deliberately supports two lines); testing only
+  0.1.7 (0.1.2 remains the documented fallback until the migration is signed off).
+
+  **Update (2026-09-26):** the original `>=0.1.2-rc.1 <0.2.0` ranges were replaced by a union with one
+  branch per supported minor line — `>=0.1.2-rc.1 <0.1.3 || >=0.1.3-rc.1 <0.1.4 || … ||
+  >=0.1.7-rc.1 <0.1.8 || >=0.1.8 <0.2.0-0`. Under npm/pnpm semantics a prerelease version only
+  satisfies a range when a comparator on the same `major.minor.patch` tuple carries its own prerelease
+  tag, so the broad range silently excluded `0.1.5-rc.3`, `0.1.7-rc.1` and `0.1.7-rc.2` from installs
+  (the runtime gate, which evaluates with `includePrerelease: true`, hid that). `tests/dsh-peers.test.ts`
+  now asserts both semantics for every line in `RUNTIME_LINES`, so supporting a new prerelease line
+  requires extending the union; the awesome-dsh-plugin contributing rules document the same trap.
+
+  **Update (2026-09-29):** the union gained its `0.2.0` branch — every `@deepseek-ai/dsh*` peer now ends
+  with `|| >=0.2.0-rc.1 <0.3.0-0`, and `RUNTIME_LINES` is `0.1.2-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.2`.
+  Evidence, measured rather than inferred: on the desktop app's bundled runtime (`@deepseek-ai/dsh`
+  0.2.0-rc.2) the plugin first appeared as `skipping profile bundle "dsh-ppt-flashmade"` — the gate
+  reads the union and the old one stopped at `>=0.1.8 <0.2.0-0` — and once the profile granted an
+  exact-version exemption it composed, registered the skill and `dsh_ppt_preview`, registered the
+  `webServer` route and the `attachments`-scoped `dsh_ppt_review`, and reported no activation warning,
+  with an activation count identical to the same profile without the plugin. The 0.1.5-rc.2 line was
+  re-measured the same way (own runtime, own home, physical dependency copy) and reported no activation
+  warning at all; the 0.1.7-rc.2 line keeps the profile that has been running since ADR-085. The host
+  surface this rests on is small by construction: `dsh/index.js` imports only Node builtins and its own
+  modules, and binds to `ctx.skills.register`, `ctx.tools.register` and scoped `ctx.inject` for
+  `webServer` / `attachments` — no `@deepseek-ai/*` import exists in the package. A negative test was
+  added with it: `0.3.0-rc.1` and `1.0.0` must NOT satisfy the union, so the next unmeasured minor
+  cannot install by accident. The CI matrix still runs the two older legs; a 0.2.0 leg needs the packed
+  smoke script to handle the exemption, which is deliberately left to its own change — ADR-089 implements
+  that leg and makes the exemption an explicit `--exempt` rehearsal rather than a blanket grant.
+## ADR-080 — v0.4.0 release: peer governance and the dual-runtime CI on both channels (V8 Part 0)
+
+- **Date:** 2026-09-25
+- **Decision.** v0.4.0 ships V8 Part 0 — the ADR-079 peer declaration, the `dsh-compat`
+  CI job over 0.1.2-rc.1 / 0.1.7-rc.2, the `docs/dsh017-probe.md` record and S30–S32 — on
+  both channels from identical bytes, superseding v0.3.4 as `latest`.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.4.0`,
+  869,114 bytes, 86 files, shasum `033977406693a4889e375ddcd625715bbd919359`,
+  `dist-tags.latest` = 0.4.0; the registry tarball was downloaded back and matched. GitHub:
+  annotated tag `v0.4.0` (tag object `373703d` → commit
+  `02ff31e92e3506a2a5b9f13d41e0f571509f825d`), Release id 396676121 with asset
+  `dsh-ppt-flashmade-0.4.0.tgz` (id 588529435, digest
+  `sha256:f3dc39085c7ce61471aee03dc3faa0070bd0d89cd5acea1a56fcb8caa8e9c4c2`); the asset's
+  downloaded sha1 equals npm's. CI run 36145910213 for `02ff31e` is green on ubuntu,
+  windows and both `dsh-compat` legs.
+- **Fixed on the way.** The `prepack` gate parsed `npm pack --dry-run --json` raw, which
+  breaks on npm 10 (its `pack` still runs the `prepare` build, whose coloured log precedes
+  the payload): `scripts/pack-list.mjs` now strips ANSI escapes and slices the payload
+  between its line-anchored delimiters, covered by `tests/check-pack.test.ts`. The new
+  `dsh-compat` CI legs run the same gate on npm 10, so both npm shapes stay pinned.
+- **Gates.** typecheck/lint, 478 tests / 60 files, `fixtures:verify` fixtureVersion 8,
+  `matrix:verify` 6/6, `prepack`'s 20-file pack check, `skill audit` (25 files,
+  111,756/120,000, 0 error) and `scripts/dsh-compat.mjs` (0.1.7 gate ok) are green; the
+  local web profile moved to the 0.4.0 tarball (backup
+  `dsh-backups/20260925-2215-v040-web-upgrade`).
+- **Known limits.** The profile's third-party plugins still show `missing peer` warnings
+  under `auto-install-peers=false` (host packages live in the runtime, not the profile);
+  the 0.1.2 line has no peer gate, so its CI leg proves install-and-compose only;
+  `@linxin666/dsh-usage@0.4.2` stays outside this plugin's scope.
+- **Alternatives rejected:** publishing without the npm 10 fix (the very CI job the release
+  announces would stay red); tagging before CI (the release pipeline's ordering rule);
+  shipping the parser as a silent local patch instead of a tested helper.
+## ADR-081 — Render snapshots: `renderpages` rasterises through PowerPoint COM and the LibreOffice Kit
+
+- **Date:** 2026-09-25
+- **Context.** Every gate so far judged source XML and SVG; the V10 plan's Part A needs real page
+  images so the audit can see off-page, overflow and overlap defects and the review loop can show a
+  model its own output. DSH 0.1.7 ships the LibreOffice Kit (native engines on Windows/macOS, WASM on
+  Linux) and this machine also has PowerPoint 16.0 COM, so both "real Office" and cross-platform
+  rasterisation are available.
+- **Decision.** Add `dsh-ppt renderpages <dir>`: it rasterises the published pptx with
+  `--engine powerpoint|libreoffice|both`, writes `<deck>/.dsh-ppt/render/<engine>/page-NNNN.png` plus
+  a `manifest.json` (engine version, source sha256, scale/dpi, limits, per-page size and sha256), and
+  rewrites `<deck>/.dsh-ppt/render/pages.json` as the run's summary. The cache key hashes the source
+  bytes, engine id and version, scale and both limits, so the deck's design profile travels inside the
+  pptx digest; a matching manifest whose page files all exist is `cached`. The Kit is discovered as
+  `DSH_PPT_LOKIT_CLI` (+ `DSH_PPT_LOKIT_NODE`) → a Kit beside the plugin (module resolution) or in a
+  DSH runtime under `$HOME` → system `soffice` with `pdftoppm`. PowerPoint COM runs
+  `scripts/win-com-export-pages.ps1`, which opens the deck read-only and headless and never rewrites
+  its bytes. An unavailable engine is `skipped` with a reason and a fix hint; `--required` turns that
+  into a `ContractViolation`.
+- **Evidence.** On this machine the 12-page `reference-quality` deck rendered through both engines:
+  the Kit at 0.1.1 (native) produced `page-0001..0012.png` at 1280×721 in 11 s (5 s with a warm
+  process) and PowerPoint 16.0 at 1280×720 in 24 s; the second run reported both engines `cached` and
+  started no render process; the deck's sha256 was unchanged after the COM pass. `render-pages.test.ts`
+  covers the engine loop, cache reuse/force/invalidation, the scale mapping, the skipped/`--required`
+  contract, the soffice+pdftoppm fallback and the failure codes; `renderpages.test.ts` covers Kit and
+  soffice discovery, the engine-choice mapping and option validation.
+- **Known limits.** The one-pixel height difference between the engines (1280×721 vs 1280×720) is
+  expected rounding, and the parity rule must tolerate it. The PowerPoint path is Windows-only and its
+  COM probe costs a few seconds per run. `soffice` alone cannot export page images — that path needs
+  `pdftoppm`. The Kit's own `maxPages` ceiling is 100; ours defaults to 30.
+- **Alternatives rejected:** `soffice --convert-to png` (exports the first slide only); the Kit's WASM
+  engine on Windows (the native engine is installed); rendering inside `audit` (snapshots must be
+  reusable and cacheable across `audit`, diff and review); writing page images outside the deck (the
+  render directory belongs to the deck).
+## ADR-082 — Render-level gate: `audit --rendered` judges the page images on top of the source audit
+
+- **Date:** 2026-09-25
+- **Context.** `dsh-ppt renderpages` (ADR-081) stores hashed page images per engine, and the V10 plan
+  wants the audit to see what a reader would see. Source-side rules cannot catch a title hidden behind
+  a panel, a shape dragged past the canvas, a page that renders blank, or text whose colour on the
+  rendered background fails contrast.
+- **Decision.** `dsh-ppt audit <dir> --rendered` runs the render-level rules over the stored snapshots
+  and reports them under the new `render` source, all as ordinary `FusionFinding`s. `--require-rendered`
+  turns a missing snapshot into `render-snapshot-missing` instead of `skipped`. The rules are:
+  `render-page-count` (pages == slides), `render-content-loss` (blank or undecodable page),
+  `render-off-page` (geometry: a non-watermark text box leaves the canvas beyond a 0.5 % tolerance;
+  pixels: more than a quarter of the outer band is inked, warning), `render-overlap` (geometry: two
+  text boxes share more than a fifth of the smaller one), `render-contrast` (the darkest ink covering
+  5 % of a text box against the page's modal background, 4.5:1 for text under 18 pt and 3:1 above),
+  `render-chrome` (the declared page-number band carries a mark when numbers are declared, and no mark
+  when they are not), `render-tofu` (a non-watermark box with text but no ink), `render-overflow`
+  (warning: the box's own colour in the 3 px ring around it) and `render-parity` (warning: PowerPoint
+  and LibreOffice ink shares drift apart). `RENDER_THRESHOLDS` exports every tunable.
+- **Evidence.** On this machine the 12-page `reference-quality` deck runs the pass end to end and
+  reports `ok=true` with two `render-parity` warnings (the engines agree on every page's content; their
+  ink shares drift by 6.2 % and 0.5 %). Calibration surfaced one engine fact worth recording:
+  LibreOffice draws `wrap="none"` text frames with its own vertical anchor — the toc title and the card
+  texts land 30–100 px above their declared boxes — while PowerPoint paints them exactly at the box, so
+  the tofu probe samples the enclosing card panel and runs on PowerPoint only; the contrast rule takes
+  the darkest colour covering 0.5 % of the window's ink; the page-number band counts only dark marks
+  between 0.15 % and 12 % of the band (a large dark block is a design panel, not a number). The
+  geometry-only overlap rule ignores the template's invisible full-width text frames, whose glyphs stay
+  in their own column. `render-audit.test.ts` pins the blank/inked/tofu split, the page-count rule, the
+  geometry-only overlap/off-page rules and the chrome band. The default audit path is unchanged:
+  `fixtures:verify` still reports the same canonical artifacts (509 tests, fixtureVersion 8).
+- **Known limits.** The parity rule's ink-share drift is a coarse proxy until a seeded fixture
+  calibrates a real pixel-difference threshold; the overflow rule stays a warning; hosts with only
+  `soffice` + `pdftoppm` cannot run the pixel pass (the Kit is required, ADR-081); the page-number band
+  and the watermark exclusion are per-profile assumptions reviewed with the design language.
+- **Alternatives rejected:** folding the pixel rules into the source audit (they need snapshots and
+  `sharp`, and the release gate must be able to demand them explicitly); failing the default audit
+  when no renderer exists (render QA is additive, ADR-081); comparing raw pixel grids across engines
+  (fonts and anti-aliasing differ; the ink-share drift keeps the signal cheap).
+## ADR-083 — Model render self-review: the `dsh_ppt_review` tool and SKILL phase 5.5
+
+- **Date:** 2026-09-26
+- **Context.** The render gate (ADR-082) judges page images with pixels, but composition,
+  information density and narrative need eyes. DSH 0.1.7 can hand images to an image-capable model
+  through `@deepseek-ai/dsh-attachment`; the office skill demonstrates the pattern (a `read_image`
+  tool that commits a file as an attachment, plus the rule to establish that the current model
+  accepts images before rasterising anything).
+- **Decision.** Register `dsh_ppt_review` in the plugin inside a scoped `ctx.inject(['attachments'],
+  …)`, so the tool exists only where the deployment can show images to the model. Its inspect mode
+  renders through the cached `renderpages` snapshots, attaches the selected page PNGs
+  (≤ `REVIEW_MAX_PAGES`, default 12) and returns a rubric with one image block per page; its record
+  mode validates the model's findings and writes `<deck>/.dsh-ppt/review/review.json`
+  (`{schemaVersion, deck, source, sourceSha256, engine, reviewedAt, findings[{page, severity: error|
+  warning|info, rule, message, fix?}], counts}`). Without the attachment service, without a
+  resolvable route, or when the route declares no image input, the tool fails with
+  `image-input-unavailable` and says the visual review did not run. The SKILL gains phase 5.5
+  (`DSH_PPT_REVIEW=pixel|model|subagent`): `pixel` runs `renderpages` + `audit --rendered` and fixes
+  the findings in their owning phase-4 layer; `model` adds the tool; at most two rounds; anything
+  open goes to the user as BLOCKING and approval stays user-only; the subagent critic is optional and
+  off by default.
+- **Evidence.** `tests/plugin/review-tool.test.ts` pins the attached page count, the rubric text and
+  the image blocks in `output.render`, the page selection and cap, both `image-input-unavailable`
+  refusal paths, finding validation (severity, page range, empty rule/message), the written
+  `review.json` counts, and that a failing render surfaces instead of reviewing a stale index. The
+  skill audit stays green with the raised ceilings (SKILL.md 3000, SKILL.en.md 2750, `generate.quick`
+  3750; 25 files, 112,405/120,000 tokens).
+- **Known limits.** `review.json` is a record, not an approval; the two-round cap and the
+  `DSH_PPT_REVIEW` policy are enforced by the skill text and the agent, not by the CLI; a text-only
+  route keeps the tool hidden and the loop reports itself as not run (S37's honest-degradation case).
+- **Alternatives rejected:** having the tool call `read_image` once per page (extra round trips and no
+  batching); letting the model write `review.json` with its own file tools (finding validation and a
+  stable schema belong in the tool); approving automatically once the loop converges (approval stays
+  with the user, as in the worktree decision D3).
+## ADR-084 — The subagent critic stays optional and off by default (V10 B3)
+
+- **Date:** 2026-09-26
+- **Context.** The V10 plan's B3 dispatches one `dsh-tool-subagent` call that reviews the same page
+  images with the same rubric and merges its findings as `critic-disagrees`. The single-agent loop
+  (ADR-083) already produces `review.json`; a critic adds a second model spend and a merge policy.
+- **Decision.** Ship the loop without the critic: phase 5.5 documents `DSH_PPT_REVIEW=subagent` as an
+  opt-in that dispatches an independent critic over the same rubric and marks disagreements, and the
+  tool keeps no critic code path of its own. The switch stays a deployment choice; the default never
+  spends a second model call.
+- **Evidence.** The phase-5.5 text names the mode and its marker; `tests/plugin/review-tool.test.ts`
+  covers the shipped loop (attachments, findings record, refusal paths); no critic code exists to test.
+- **Known limits.** Until a real subagent run is recorded, `subagent` is documented rather than
+  exercised; a deployment that turns it on owns the extra cost and the merge judgement.
+- **Alternatives rejected:** building the critic now (cost and merge policy without a proven need);
+  dropping the mode from the skill (the plan keeps it as a flags-gated增量, and the marker is the
+  contract a future implementation must honour).
+## ADR-085 — v0.5.0 release: render QA and the model self-review loop on both channels
+
+- **Date:** 2026-09-26
+- **Decision.** v0.5.0 ships V10 Part A and Part B together: `renderpages` (ADR-081), `text-measure`,
+  `audit --rendered` (ADR-082), the rendered page baseline, the `dsh_ppt_review` tool and SKILL phase
+  5.5 (ADR-083), with the subagent critic left optional (ADR-084). It supersedes v0.4.0 as `latest`.
+- **Evidence (dual-channel).** npm (`registry.npmjs.org`): `dsh-ppt-flashmade@0.5.0`, 930,628 bytes,
+  88 files, shasum `4cdfc900e35c156e62007e5eede88182d12d29b4`, `dist-tags.latest` = 0.5.0; the registry
+  tarball was downloaded back and matched. GitHub: annotated tag `v0.5.0` (tag object
+  `0116d3a` → commit `2b3bedb88af4e798ff512e9463a33e120d5986d9`), Release id 396790489 with **two**
+  assets of the same bytes — `dsh-ppt-flashmade-0.5.0.tgz` (id 588837765) and the version-free alias
+  `dsh-ppt-flashmade.tgz` (id 588837802), both digest
+  `sha256:4aa831b615dd60ae929b8fe1c9078ed75f04ec19e1713598363ca3288542ed1c`, both downloaded back with
+  npm's sha1. The alias exists so a marketplace `releases/latest/download/dsh-ppt-flashmade.tgz` link
+  cannot rot when the next version ships a versioned asset name.
+- **Peer ranges.** Before publishing, the `@deepseek-ai/dsh*` peer ranges were replaced by a union with
+  one prerelease branch per supported minor line, because npm/pnpm only admit a prerelease when a
+  comparator on the same `major.minor.patch` tuple carries a prerelease tag; the previous
+  `>=0.1.2-rc.1 <0.2.0` would have failed an install on `0.1.7-rc.2` with `ERESOLVE` even though the
+  runtime gate accepted it (ADR-079's update, the 0.1.7 probe record, and the awesome-dsh-plugin
+  contributing rules document the trap).
+- **Gates.** typecheck, lint, 518 tests / 66 files, `fixtures:verify` (fixtureVersion 8, including
+  `--rendered` against both engine baselines), `matrix:verify` 6/6, `prepack`'s 21-file pack check and
+  `skill audit` (25 files, 112,405/120,000, 0 error) are green; CI run 36164726448 for `2b3bedb` is
+  green on ubuntu, windows and both `dsh-compat` legs.
+- **Runtime.** The local web profile moved to the 0.5.0 tarball (backup
+  `dsh-backups/20260926-0109-v050-web-upgrade`); it needs one launcher restart to load the new
+  commands and the review tool.
+- **Known limits.** A live model review still needs an image-capable route; the two-round cap and
+  `DSH_PPT_REVIEW` are skill-level policy; the subagent critic is documented, not exercised.
+- **Alternatives rejected:** releasing Part A alone and shipping Part B later (the plan defines v0.5.0
+  as both, and the tool plus skill text are testable without a vision model); uploading only the
+  versioned asset (a `latest/download/` link would rot at the next release); keeping the broad peer
+  range (install-time `ERESOLVE` for every 0.1.5+/0.1.7 prerelease).
+## ADR-086 — Worktree review workspace: version directories, propose/approve/discard, and the three-mode diff
+
+- **Date:** 2026-09-27
+- **Context.** Part C of the v10 plan borrows the draft/worktree review model from
+  `dsh-univer-office` (U5/U7): every edit lands in an isolated draft, the user approves or discards it,
+  and a diff shows what changed. Our artifacts are files — a rendered `.pptx` plus its manifest,
+  compat report, audit findings and page snapshots — and the deck must never enter git, so a
+  git-worktree implementation is out. D2 fixes the shape (file-level versions, `canonicalize` for the
+  semantic diff, `renderpages` for the render diff) and D3 fixes the authority (propose/approve/discard
+  are user actions; a model's self-review produces findings only).
+- **Decision.** A draft lives in `<deck>/.dsh-ppt/versions/<proposalId>/` and holds an immutable
+  `proposal.json` (id, createdAt, message, source sha256/bytes/slides, deck-relative `files`) beside a
+  mutable `status.json`; `approve` copies the package and its records into `out/` through a sibling
+  temporary file and a rename per artifact, writing `out/.publish.json` as the intent trace and
+  `.dsh-ppt/trunk.json` as the record of what the trunk holds. `discard` removes a draft directory and
+  appends to `.dsh-ppt/versions/history.jsonl`; a draft that is the published trunk cannot be discarded.
+  `propose` prunes to the newest `PROPOSAL_KEEP` (10) versions and never prunes the trunk. The diff has
+  three modes over two references (`trunk`/`out` or an id): **semantic** canonicalises both packages and
+  attributes each slide the parts it owns through the relationship graph (added/removed/modified pages,
+  shape-count deltas, chart data versus formatting, parts outside every slide), **audit** diffs the
+  recorded findings, and **render** compares the page images per page as the share of differing pixels;
+  a mode without inputs on both sides is reported as skipped. `canonicalize` moved from
+  `tests/support/canonicalize.ts` to `src/bridge/canonical.ts` (the test-support file re-exports it) so
+  production code and the fixture gate share one implementation.
+- **Evidence.** 26 new tests: `src/bridge/worktree.test.ts` (9) covers registration, listing, the
+  publish copy and manifest rewrite, idempotent re-approval, trunk continuity across two approvals,
+  discard leaving `out/` untouched, refusing to discard the trunk, pruning, and an unreadable record;
+  `src/bridge/deck-diff.test.ts` (10) proves two exports of the same deck compare equal, a modified page
+  names its part and shape delta, added/removed pages, chart data versus formatting, a theme change
+  attributed to the page that depends on it, a shared part outside every slide, the audit delta, and
+  render rates (0.00 for identical pages, >0.40 for a half-black page, `onlyRight` for an extra page);
+  `src/commands/propose.test.ts` (7) covers the id guards, approve/discard through the commands, listing,
+  a trunk-versus-draft diff (page change, one added finding, render skipped), an unknown reference, and
+  a side without a package. The suite is 544 tests over 69 files; `pnpm fixtures:verify` and the CLI
+  surface test (which requires `--json` and a description on every leaf) stay green.
+- **Known limits.** Publishing is atomic per artifact, not across the whole set: a crash between renames
+  leaves `out/.publish.json` behind and can pair a new package with an older manifest, which is why the
+  intent file exists and the trunk record names the version that was published. Ownership of a part is
+  computed per page, so a theme change appears on every page that reaches it rather than as a single
+  global entry (the `globalParts` list holds only parts no page reaches). The render diff needs
+  snapshots on both sides (`propose --render`, or `renderpages` for the trunk). `approve` is a CLI action
+  in this change; the session tool that will call `propose` (C4) never calls it.
+- **Alternatives rejected:** a git worktree (the deck must not enter git); object-level diffs (we operate
+  on files, and the canonicalizer already answers the file question); moving the package instead of
+  copying it on approve (the version would lose the bytes its own diff compares); keeping only `out/`
+  and overwriting it per draft (that is the silent overwrite D3 forbids); auto-approving after a clean
+  audit (approval stays with the user); deleting a discarded draft without a history line (the
+  append-only log is what makes a removal explainable).
+
+  **Update (2026-09-27): the session card landed (C4).** `dsh_ppt_propose` runs `propose`, asks for
+  `diff trunk <id>`, reads `versions --json` for the deck's draft history, and writes one card payload to
+  `<plugin home>/proposals/<id>.json`; the tool's text result carries a `dsh-ppt-propose:<id>` marker and
+  `presentationMeta` carries the payload, so the card works both top-level (meta) and under Code Mode
+  (the route). The plugin registers `/dsh-ppt-propose/<id>` (payload JSON) and
+  `/dsh-ppt-propose/<id>/page-N.png` (a draft page image) inside the same `webServer` scope as the
+  preview route, stamping every answer with `x-dsh-ppt-propose` so the card can tell this route's 404
+  from a proxy's. The card prints the approve and discard commands and says who runs them; the tool has
+  no approve parameter and never calls the command, which is D3 made structural rather than promised.
+  Draft history is folded into one `<details>` row set, and `pages` come from the draft's own
+  `--render` snapshots (at most eight). Evidence: `tests/plugin/propose-tool.test.ts` (5) covers the
+  payload and marker, the payload route, page images, unknown id and page, the render-off case, a failing
+  CLI, and id validation; `tests/plugin/plugin.test.ts` asserts the third tool and both card routes.
+
+## ADR-087 — File-tree `.pptx` viewer: an external document-preview implementation over `renderpages --outside`
+
+- **Date:** 2026-09-27
+- **Context.** Part D of the v10 plan wants a right-sidebar viewer so a `.pptx` in the workspace
+  file tree opens as a preview instead of "open in another app". The plan's D4 assumed a private
+  address protocol plus a `dsh-better-sidebar` fallback, so the first task was a spike over the
+  0.1.7 runtime.
+- **Spike findings (0.1.7-rc.2, this machine).** The runtime ships a client **slot catalogue** inside
+  `@deepseek-ai/dsh-cordis-client-runner/lib/client.js` that documents every client slot. Relevant
+  entries: `sidebar.right.pane.tab` / `sidebar.right.pane.tab.title` / `sidebar.right.tab.document.action`
+  for right-sidebar tabs, and the keyed `sidebar.right.tab.document` for a document body. Files travel
+  as `dsh-resource://file/<scope>/<path>` addresses (`scope` = `session/<sessionId>` or `absolute`)
+  opened by a **resource provider** registered into `ctx.resources` as
+  `{protocol: 'file', async *open(address, {signal})}`; `@deepseek-ai/dsh-api-workspace-files` owns the
+  `file` protocol and streams stat frames plus change notices. Which implementation draws a file is
+  decided by `ctx.documentPreviews.register({id, extensions, binaryExtensions?, priority?, title,
+  loading, wrap?})` in `@deepseek-ai/dsh-client-ui-sidebar-documentpreview`: matching ranks external
+  implementations above builtins, then longest suffix, then registration order, and the body component
+  registers into `sidebar.right.tab.document` under the same `id` with owner props
+  `{useTabInfo, useResource, content: {kind: 'renderer', revision, loaded, failed, reload},
+  resourceAddress, wrap, scrollportRef, addResource, setResources}`. `pptx` is on the product's
+  unviewable-binary list and the builtin `OfficeBody` needs a host document-preview service, so an
+  external implementation for the deck suffixes is the intended extension point. `dsh-better-sidebar`
+  is not installed in this profile, so its path could not be observed.
+- **Decision.** Register an external document preview (`id: dsh-ppt-fusion/pptx`, suffixes
+  `pptx/pptm/potx/ppsx`, `priority: extension`, `loading: renderer`, `wrap: false`) whose body is an
+  iframe over a new host route `/dsh-ppt-pptx/{view,page}`; a body resolves the file's host path from
+  `useResource(...).value.absolutePath` and hands it to the route. The route renders through the
+  packaged CLI with the two flags this change adds to `renderpages`: `--outside` (a source package
+  outside the deck workspace) and `--output-dir <abs>` (an absolute output root, refused without
+  `--outside`). Pages cache under `<plugin home>/pptx-cache/<sha256>/`, and `ensurePages` tries
+  `libreoffice`, then `powerpoint`, then `both`, so an open costs one engine probe instead of two —
+  measured 58 s → 6 s cold and 24 s → 1 s warm for a 12-page deck on this machine. A deployment whose
+  own sidebar renders decks sets `window.__DSH_PPT_DISABLE_SIDEBAR_VIEWER__ = true` and this
+  implementation steps aside.
+- **Evidence.** `tests/plugin/pptx-viewer.test.ts` (6) covers the view page and page image, the
+  `refresh=1` force path, non-deck/unknown-route/unknown-page rejections, a render failure surfaced as
+  502, `ensurePages` refusing an unsupported or missing file, and suffix matching; the plugin entry test
+  now asserts three routes (`/dsh-ppt/preview`, `/dsh-ppt-propose`, `/dsh-ppt-pptx`). Real smoke on a
+  copied standalone 12-page deck: `ensurePages` → `libreoffice`, 12 pages, digest `736fbecc…`, 6 s cold
+  and 1 s warm; `/view` → 200 `text/html` 4,386 B; `/page?index=1` → 200 `image/png` 26,987 B; a `.txt`
+  path → 400. `renderpages --outside --output-dir` has its own tests in
+  `src/commands/renderpages.test.ts` (renders from outside into an absolute root, and refuses both
+  `--output-dir` without `--outside` and an outside source without it).
+- **Known limits.** The viewer does not reuse the preview store's `preview.html`: a file-tree path may
+  have no deck workspace, and the honest answer there is the page images the same CLI produces (for a
+  deck-owned file the bytes are the same ones the snapshot cache holds, keyed by the same digest). It
+  renders; it does not annotate, and it has no approve/discard actions (those stay with the worktree
+  card). The client half cannot be exercised from this repository's tests, so the sidebar entry itself
+  is verified by the user in a browser after the release; `dsh-better-sidebar` remains an
+  unobserved degrade target behind the documented flag.
+- **Alternatives rejected:** a private `dsh-resource://` protocol of our own (the shell already routes
+  deck suffixes through `documentPreviews`, and a second address space would not be reachable from the
+  file tree); reusing the builtin `OfficeBody` (it needs the host document-preview service and shows
+  pptx as unviewable without it); rendering inside the client (a second renderer in the UI, which the
+  preview card's design already rejects); `--engine both` for every open (it pays the PowerPoint probe
+  even when the engine only reports `skipped`).
+
+## ADR-088 — Asset cache, discovery cache and per-call engine timeouts for `assets` / `images`
+
+- **Date:** 2026-09-27
+- **Context.** Part E of the v10 plan borrows `dsh-univer-office`'s tooling pattern (U3) without
+  borrowing its assets: every copy of a library file was read from disk again, every office discovery
+  walked the roots again, and an image search or generation had only the engine's own fixed timeout. The
+  three sourcing channels (svg, office, user) and their licensing discipline stay exactly as they were.
+- **Decision.**
+  - `src/bridge/asset-cache.ts` owns one cache root: `<cacheDir>/manifest.json` plus
+    `<cacheDir>/blobs/<key>.<format>`. A key is `source:id:format`; an entry records the payload's
+    sha256, its size, the library size it was copied from and the fetch time.
+    `readAssetCache` validates the index on every read and refuses a malformed one with the path in the
+    message (a cache whose index disagrees with its payloads is how a deck ends up with an image nobody
+    chose). A payload that fails its digest is a miss, repaired by the next copy; a cache write that
+    fails (read-only root) never fails the copy.
+  - `assets copy` gained `--cache-dir` and `--verify-cache`. A repeat copy is served from the cache:
+    observable, because it still succeeds when the library file can no longer be read, and it reports
+    `from cache` in the summary. `--verify-cache` reports `checked`/`missing`/`mismatched` for every
+    entry. The port exposes no `stat`, so an existing library is still read once to compare sizes; the
+    cache removes the dependency on the library, not the read of an unchanged file.
+  - `assets discover` gained `--cache-dir` and `--force`: the discovery record is cached as
+    `office-discovery.json` and reused, and `--force` walks the roots again. The cache records the
+    snapshot it was built from; a library that changes underneath it needs `--force` (the filesystem port
+    carries no mtime, so a silent change cannot be detected).
+  - `images search` and `images generate` gained `--timeout <ms>`, which overrides the engine
+    invocation's timeout for that call. The download and the search live in the ppt-master engine, so the
+    flag travels as the child timeout the runner enforces; a breach surfaces as the engine's own
+    `EngineTimeout` naming the value.
+- **Evidence.** `src/bridge/asset-cache.test.ts` (6) covers storing a payload with its digest, a stale
+  size and a tampered payload as misses, a removed payload in `verify`, a non-JSON index, a wrong schema
+  and an unusable entry, replacement by key, and the temporary-file write.
+  `src/commands/assets.test.ts` adds four integration cases: a repeated `user` copy served from the cache
+  after the library stopped being readable, `--verify-cache` witnessing a tampered payload and the next
+  copy repairing it, a corrupted index refused as `ContractViolation`, and a cached office discovery
+  reused with `--force` rescanning (theme-only result). `src/commands/images.test.ts` adds four:
+  the timeout reaching the child (`options.timeoutMs`), a non-positive timeout refused before the engine
+  runs, a timed-out search reporting `image-search exceeded 250 ms`, and the timeout on a generation.
+- **Known limits.** The cache trusts its key: rename an asset but keep `source:id:format` and a stale
+  payload can be served until the library size changes. The office discovery cache cannot notice a
+  library that changed without changing size. `--verify-cache` is opt-in so an ordinary copy stays one
+  digest. Nothing here downloads: the cache only remembers what the engine or a library already produced.
+- **Alternatives rejected:** a global content-addressed store keyed by digest alone (a copy would have to
+  hash the library first, which is the read the cache is meant to avoid, and a stale entry could then be
+  served for a different id); writing the cache into the deck (a copied asset's cache is machine-local
+  and must not travel with the deck); treating a damaged payload as an error (a cache is an
+  optimisation, so it repairs or misses, never blocks); a fixed timeout flag with no engine plumbing (the
+  network lives in the engine, so a client-side timer would leave the child running).
+
+## ADR-089 — The 0.2.0 line joins the compatibility CI with the runtime peer gate enforced
+
+- **Date:** 2026-09-30
+- **Context.** DSH moved to the 0.2.0 line (npm `latest`/`next` = `0.2.0-rc.2`) and the desktop app already
+  runs it, while the WebUI profile still runs 0.1.5-rc.2. The plugin's peer union carries a 0.2.0 branch
+  (ADR-079 update) and a one-off measurement on this machine showed the skill, tools, `webServer` routes
+  and the scoped `attachments` service registering on 0.2.0-rc.2, but CI still proved only the 0.1.2 and
+  0.1.7 lines. A release that claims 0.2.0 support needs a permanent gate, not a remembered measurement.
+- **Decision.**
+  - `dsh-compat` runs three legs: `0.1.2-rc.1` (install and compose only — that line predates the peer
+    gate), `0.1.7-rc.2` and `0.2.0-rc.2` (both enforce the gate, `--allow-missing-gate` stays false so a
+    line without the gate fails instead of silently skipping).
+  - `scripts/dsh-compat-profile.mjs` now asks the pinned runtime's own `evaluatePluginCompatibility` about
+    the installed plugin before it dumps the profile. A mismatching peer fails the step with the runtime's
+    own warning text: a plugin whose range npm satisfies but the gate refuses (the two use different
+    prerelease rules) can no longer pass by composing.
+  - `--exempt` rehearses the documented escape hatch: it writes
+    `<profileDir>/compatibility.json` as `{"<name>@<exact version>": ["<exact dsh version>"]}`, re-reads it
+    through the runtime's `readProfileCompatibility`, and requires the verdict to come back `exempted: true`
+    before the compose assertions run. On a line without that reader the flag fails with its own message
+    instead of a reference error.
+  - `--expect <version>` pins the runtime the step is about, so a stale or wrongly cached install cannot
+    satisfy a leg; `--package`/`--entry` let the same script rehearse another package (the negative
+    control).
+- **Evidence.** On this machine, against temp installs of `@deepseek-ai/dsh@0.1.7-rc.2` and
+  `@deepseek-ai/dsh@0.2.0-rc.2`: `dsh-compat ok: dsh-ppt-flashmade@0.6.1 vs dsh <line>` and
+  `dsh-compat profile ok: dsh <line> composes dsh-ppt-flashmade@0.6.1 … (peer gate clean)` on both lines.
+  Negative control: a plugin declaring `@deepseek-ai/dsh: >=0.1.2-rc.1 <0.1.3` installs on npm but the
+  0.2.0 gate refuses it — the smoke fails with `Plugin … is incompatible with dsh 0.2.0-rc.2 …`, and with
+  `--exempt` it passes and reports `exemption exercised (dsh-ppt-refusal-probe@0.0.1 on dsh 0.2.0-rc.2)`
+  with the file on disk. Repository gates at this commit: 580 tests over 73 files, typecheck, lint. CI evidence: PR #2 head `632ba1e`, GitHub Actions run 36753222033 — five jobs green including the new `dsh-compat (0.2.0-rc.2)` leg alongside `0.1.2-rc.1` and `0.1.7-rc.2`.
+- **Known limits.** The 0.1.2 leg proves installation and composition, not gate compliance — that line has
+  no gate to comply with. The exemption path is a 0.2.0 contract; on older lines a refused plugin is
+  simply refused. CI runs the legs on ubuntu only: the peer ranges and the bundle patch are
+  platform-independent, while Windows-specific runtime gaps are covered by the Windows leg of the main
+  job and by the sandbox probe in A4.
+- **Alternatives rejected:** a single "latest line" leg (leaves 0.1.7 users unproven and would silently
+  drop 0.1.2); passing `--allow-missing-gate true` on every line (hides a regression that removes the gate);
+  trusting the dump alone (a gate-refused plugin still appears in `--dump-config`, so composing is not
+  evidence of admission); granting the exemption unconditionally in CI (turns the escape hatch into the
+  default and stops protecting users from an incompatible range).
+
+## ADR-090 — Generate the DSH peer union from the declared runtime lines
+
+- **Date:** 2026-09-30
+- **Context.** The union of peer ranges has been hand-edited three times: the original
+  `>=0.1.2-rc.1 <0.2.0`, the per-minor rewrite after npm's prerelease rule bit (ADR-079 update), and the
+  `0.2.0` admission (another update). Each edit had to keep four peers × eight bands in step, and the
+  same edit had to extend the negative controls that stop an unmeasured line installing. The rule that
+  makes the union eight bands long — npm needs a comparator per `major.minor.patch` tuple carrying its
+  own prerelease tag, while the runtime gate evaluates with `includePrerelease` — is exactly the rule a
+  hand edit forgets.
+- **Decision.**
+  - `scripts/runtime-lines.mjs` is the single source: `RUNTIME_LINES` (the exact versions a probe
+    measured), `COVERED_PATCH_LINES` (the patch lines the union enumerates as install bands),
+    `DSH_PEERS`, and the derivation `dshPeerRange()`, `unsupportedLines()`, `governanceProblems()`.
+    The newest covered line ends the union; the negative lines are the next minor's first prerelease and
+    `1.0.0`, both computed rather than remembered.
+  - `scripts/gen-peer-union.mjs` writes the four peer ranges into `package.json` and `--check`s them.
+    `pnpm peers:check` runs the check, and `prepack` runs it before the build, so a release cannot ship a
+    manifest that disagrees with the declared lines.
+  - `tests/dsh-peers.test.ts` asserts the manifest's ranges equal the generated union byte for byte,
+    that the declared lists are consistent, that both npm and gate semantics admit every measured line,
+    and that the computed unsupported lines satisfy neither.
+- **Evidence.** The generator reproduces the current, hand-written union byte for byte (4 peers, 8 bands,
+  3 measured lines). A copy of the manifest with one band altered fails `--check` (exit 1, naming all
+  four peers) and the write mode repairs it back to a byte-identical file. `tests/dsh-peers.test.ts`
+  passes 6 tests. Adding a line is now: edit `RUNTIME_LINES` (and, when the patch is new, the covered
+  list), run the generator, re-run the compatibility probe.
+- **Known limits.** The covered patch list is declared, not fetched: the generator stays offline and
+  deterministic, so a newly published 0.1.x patch that users might run is not admitted until the list is
+  extended. The generator covers the four `@deepseek-ai/dsh*` peers; `@deepseek-ai/cordis` keeps its own
+  range because the gate does not evaluate it.
+- **Alternatives rejected:** fetching the patch list from the registry during release (network in the
+  release path, and the registry's version history is not a correctness source for what a user runs);
+  keeping the union hand-written with a test that compares it to a second hand-written copy (two sources
+  of the same mistake); rewriting the manifest silently during `pnpm pack` (the release would then
+  publish something nobody reviewed).
+
+## ADR-091 — Windows sandbox: the plugin chain stays outside the 0.2.0 ACL confinement, with the matrix recorded
+
+- **Date:** 2026-10-01
+- **Context.** DSH's 0.2.0 line ships a Windows sandbox (`@deepseek-ai/dsh-sandbox-windows-acl`): a
+  `WRITE_RESTRICTED`, Low-integrity token that may write only in granted roots (workspace plus a per-session
+  private temp), with a **standing** workspace grant (ACE + world `FILE_DELETE_CHILD` deny + Low label) and a
+  revocable temp grant. The plugin runs a long subprocess chain (Node, an `uv` venv with the ppt-master
+  engine, sharp, LibreOffice/PowerPoint, an ffprobe shim) and spawns those children itself through its
+  runner port rather than through `ctx.sandbox`.
+- **Decision.** Keep the chain where it is — spawned with the user's token — and treat "does it still work
+  when the workspace carries the sandbox's standing edits?" as the question to answer, because that is what
+  the plugin actually meets. Record the confined behaviour as a matrix (`docs/compat/windows-sandbox.md`)
+  instead of claiming confinement support that was never measured, and name the adaptations a move under
+  `ctx.sandbox` would need first.
+- **Evidence.** `scripts/win-sandbox-probe.mjs` runs seven probes in four rows (control, standing,
+  confined `workspace-write`, confined `read-only`) against the runtime's own `runner.js`, and judges
+  renders by their `renderpages --json` report rather than by exit code (a `skipped` engine is not a pass; a
+  cache hit is not a render). Result: **every probe passes in the standing row** — ffprobe, `doctor`'s
+  engine checks, sharp, the PowerPoint COM render (5 pages), workspace file and directory writes — so the
+  sandbox's standing mutations do not break the plugin for a user in a confined session. Under confinement
+  three blockers appear: the Python chain (venv outside the grant; `imageio_ffmpeg.get_ffmpeg_exe()` writes
+  its binary cache under the user profile), the render engines (`skipped`: COM cannot launch confined,
+  LibreOffice is absent on this machine in every row), and plugin-home writes (denied by design).
+- **Known limits.** `read-only` does not deny writes inside an already-Low-labelled workspace — the standing
+  label's documented widening, measured here rather than assumed; `doctor` fails its `png-renderer` check on
+  this machine for a missing cairo library in every row, so that check is not confinement evidence; and the
+  matrix covers one workspace and one machine, not a fleet.
+- **Alternatives rejected:** routing the chain through `ctx.sandbox` now (it would break the engine,
+  the ffprobe shim and both renderers before the home strategy exists, with no user benefit today);
+  "fixing" the plugin home by moving it into the workspace unconditionally (a user's venv and caches belong
+  to the machine, not to one deck, and the harness already proves the in-workspace layout works when a
+  session needs it); reporting the confined rows as failures (they measure a path the plugin does not take).
+
+## ADR-092 — The 0.2.0 model chain: four scenarios on a scratch install, one attempt each
+
+- **Date:** 2026-10-01
+- **Context.** A1 proved the 0.2.0 line installs, satisfies the peer gate and composes; that is not the same
+  as a model being able to work on it. V11 A-D4 asks for the four scenarios to be re-run on the 0.2.0
+  runtime, and ADR-079's update already showed the line differs in ways that matter (a plugin whose ranges
+  stop before 0.2.0 is skipped, not merely warned about).
+- **Decision.** Run `pnpm eval:run --attempts 1` over the four scenarios on a scratch install of
+  `@deepseek-ai/dsh@0.2.0-rc.2` (own `DSH_HOME`, own profile, the runtime's own `dsh.cmd` through the
+  Windows launch path V10 F2 fixed) and keep the outcome as the 0.2.0 baseline, separate from the 0.1.7
+  baseline snapshot. One attempt each: the question is "does the chain work on this line", not "what is the
+  best of three", and the attempt cap (1800 s) is part of the harness as shipped.
+- **Evidence.** 4/4 scenarios pass all seventeen rubric checks: topic-only 17/17 (1591 s, 198 tool calls),
+  doc-to-deck 17/17 (1714 s, 147), branded-template 17/17 (302 s, 86), reference-quality 17/17 (hit the
+  1800 s cap, 180 tool calls, `designProfileOk = true`). Zero failed tool calls, zero gate failures, one
+  skill load per attempt, and no `peerDependencies` / `exemption` / `skipping profile bundle` line in any
+  attempt's stderr. Against the 0.1.7 baseline the earlier reference-quality failure
+  (`design-background-mode`, 16/17) is model variance, not a gap in the plugin. Records:
+  `docs/v020-eval.md`, `docs/dsh020-probe.md`, acceptance S46.
+- **Known limits.** `reference-quality` is a cut-off pass: the 1800 s cap killed the attempt while it was
+  still working, so it never wrote `.dsh-ppt/checkpoint.json` (the report's single warning) even though the
+  published package passed every gate. Raising or splitting the cap for the 12-page scenario belongs to the
+  next evaluation pass. `branded-template` exited 1 with a green rubric: the harness judges the workspace,
+  not the agent's exit code. And nothing here covers the Windows sandbox matrix (A4) or a bundled
+  LibreOffice renderer (B5).
+- **Alternatives rejected:** three attempts per scenario (triples the model cost to answer a question one
+  attempt answers, and the pass/fail rule already treats any passing attempt as a pass); running the
+  scenarios through the source checkout instead of the pinned runtime (that measures a different
+  composition); dropping reference-quality because it had failed on 0.1.7 (the failure was the reason to
+  re-run it).
+
+## ADR-099 — v0.7.0 release: the GitHub channel first, npm pending a valid token
+
+- **Date:** 2026-10-01
+- **Context.** V11 A6 ships v0.7.0, the DSH 0.2.0 compatibility milestone: the compatibility CI leg with the
+  gate enforced (ADR-089), the four-scenario run on 0.2.0 (ADR-092), the generated peer union (ADR-090), the
+  Windows sandbox matrix (ADR-091) and the four-line support matrix. The repository's rule for releases is
+  "both channels from identical bytes, npm first". The npm token in `~/.npmrc`
+  (`//registry.npmjs.org/:_authToken=npm_xyuG…`, written 2026-09-23) now answers **401 Unauthorized** for
+  `/-/whoami` — it worked for v0.6.1 and has since been revoked or expired — so the npm half cannot run.
+- **Decision.** Publish the **GitHub channel now** from the packed tarball and keep npm pending rather than
+  holding the release, and record the deviation here instead of letting the channel pair look complete.
+  The asset is the same file the npm publish will use, verified by digest, so the pair stays byte-identical
+  once the token exists; `tmp/ci/release-v070-npm.ps1` completes npm and re-proves the equality.
+- **Evidence (GitHub channel, 2026-10-01).** Commit `0f42cc98` on `main` (PR #2 merged as `e181e68`, the
+  v0.7.0 prep replayed on top), CI run 36782220289 green on all five jobs (three `dsh-compat` legs,
+  ubuntu, windows). Annotated tag `v0.7.0` → tag object `1a243c99` → commit `0f42cc98`. Release id
+  **400483004**, assets `dsh-ppt-flashmade-0.7.0.tgz` (id 601916467) and the version-free alias
+  `dsh-ppt-flashmade.tgz` (id 601916553), both **1,025,871 bytes**, digest
+  `sha256:c7d85c864a02966abf2c950893ffea9db9377a03173192144ea354ca13a17792` — equal to the packed tarball,
+  and each asset downloaded back hashes to sha1 `d4e9e1871020960957d4c911fdda4c9e9caea16d`. The alias under
+  `releases/latest/download/` resolves, so the marketplace's rot-free link keeps working.
+  Pre-publish host checks: `dsh-compat` gate and the packed-plugin smoke both pass on scratch installs of
+  `0.1.7-rc.2` and `0.2.0-rc.2` (`composes dsh-ppt-flashmade@0.7.0 … (peer gate clean)`); repository gates
+  typecheck, lint, 73 test files, `fixtures:verify`, `matrix:verify`, `prepack` (peers:check first) and the
+  skill audit (112,576 tokens, 0 errors) are green.
+- **Update (2026-10-08): the npm half is published.** A fresh token (`npm whoami` → `bingtang1019`) replaced the
+  revoked one in `~/.npmrc`, and `tmp/ci/release-v070-npm.ps1` published the same tarball:
+  `npm publish tmp/release/dsh-ppt-flashmade-0.7.0.tgz --registry https://registry.npmjs.org` → registry
+  tarball downloaded back at sha1 `d4e9e1871020960957d4c911fdda4c9e9caea16d` (1,025,871 bytes), both GitHub
+  assets re-downloaded at the same sha1, and `dist-tags.latest = 0.7.0`. Both channels therefore carry one
+  file again, and `dsh plugin --profile <p> add -w dsh-ppt-flashmade@0.7.0` resolves from npm.
+- **Known limits (superseded by the update above).** npm `latest` was `0.6.1` while the token was revoked, so
+  an install by name got
+  the previous version even though the GitHub channel carries 0.7.0; the WebUI profile migration rides the
+  npm half. The GitHub-first order is a deviation, documented here, not a change of policy.
+- **Alternatives rejected:** holding the GitHub release until npm works (the GitHub channel is independently
+  usable and the bytes are already proven); publishing a rebuilt tarball from a different tree to npm later
+  (the pair must be one file); writing a redacted token into the repository or CI (credentials never enter
+  the repo).
+
+## ADR-100 — Chrome components are independent: `pageNumber.show` governs the page number only
+
+- **Date:** 2026-10-08
+- **Context.** A real 16-page deck (the V12 feedback report) turned the page number off — `chrome.pageNumber.show:
+  false` — because the LibreOffice renderer does not paint `<a:fld type="slidenum">` and the render-level chrome
+  gate therefore reddens under that engine. The footer carrying the course name disappeared with it. The cause
+  was one condition in two places: `applyChrome` wrapped the page number, footer and section in a single
+  `if (!isPageNumberSkipped(...))`, and `auditChrome` gated the footer/section rules on the same flag while its
+  `chrome-skip` rule *forbade* any chrome shape on a page the page number skipped. Applier and gate agreed on a
+  contract the fields never expressed: a deck can declare a footer without declaring a page number at all, and
+  `pageNumber.skipRoles` names the page **number**, not the page.
+- **Decision.** Every chrome component answers to its own declaration.
+  - `isPageNumberSkipped(chrome, role)` keeps its meaning — the page number is skipped when the deck declares no
+    `pageNumber` block, `show: false`, or a `skipRoles` entry covers the role — and is used only for the page
+    number.
+  - `applyChrome` writes the page number under that condition, and writes a declared `footer`/`section` on every
+    page it applies to, whatever the page-number state.
+  - `auditChrome` requires a page-number field exactly when the page number is expected (`chrome-coverage`); its
+    `chrome-skip` rule now fires only for a page-number field or `chrome-page-number` shape on a page the contract
+    skips, so a footer or section there is expected rather than a violation. The `chrome-footer-text` and
+    `chrome-section` rules run on every page.
+  - `fixtures/hello` (footer + `skipRoles: ["cover","ending"]`) is re-recorded at **fixtureVersion 9**, because
+    the cover and ending legitimately gain the footer they always should have carried.
+- **Evidence.** Four new cases in `src/bridge/chrome.test.ts`: page number off + footer on (footer written, no
+  page number, audit clean), every component off (nothing written, audit clean), every component on (all three
+  written, audit clean), and a `skipRoles` cover whose footer is removed after the pass (the audit reports
+  `chrome-footer-text`, not `chrome-skip`). `pnpm fixtures:record` wrote fixtureVersion 9 and `pnpm
+  fixtures:verify` holds canonical equality for all three artifacts; 21 chrome tests pass; the full gate set
+  (typecheck, lint, 73 test files, fixtures:verify, matrix:verify, prepack, skill audit) is green.
+- **Known limits.** `chrome.logo` is still audited (`chrome-logo-part`) without this pass drawing it, so a deck
+  that declares a logo needs the shape from its author: the per-component fix removes the page-number coupling,
+  not that separate gap. The fixture's raw bytes for deep/merged drift by a few bytes between runs while their
+  canonical form holds — pre-existing and unchanged.
+- **Alternatives rejected:** keeping the all-or-nothing reading (it contradicts the field names and the report);
+  reading `show: false` as "no chrome at all" (silently drops declared components); fixing only the applier
+  (the audit would then redden the footer the applier correctly writes); fixing only the audit (the applier would
+  keep dropping the footer).
+
+## ADR-101 — The PowerPoint COM leg validates every page image and opens a unique copy per run
+
+- **Date:** 2026-10-08
+- **Context.** The same feedback session hit two PowerPoint COM behaviours while measuring pixels. `Slide.Export`
+  returns before the PNG is flushed, so reading the file immediately yields a truncated image (the report
+  measured a 720-line header against ~683 readable lines). And PowerPoint keeps an open presentation in memory
+  keyed by path: re-exporting a deck the caller had just modified handed back the previous copy for 10 of 16
+  pages, which nearly read as "the fix did not work". The render-level gates then consume those images, so both
+  behaviours can turn a measurement into a wrong conclusion.
+- **Decision.**
+  - `scripts/win-com-export-pages.ps1` accepts a page file only when it is a complete PNG — signature, IHDR
+    width/height within two pixels of the requested size, trailing `IEND` — and re-exports up to three times with
+    a 60→480 ms backoff. A page that never completes throws with a hint to run `--engine libreoffice`.
+  - Each run opens a **unique copy** of the deck (a GUID-named file in the temp directory, removed in `finally`),
+    so the path-keyed in-memory cache cannot answer with a stale presentation.
+  - `src/bridge/render-pages.ts` validates every page image before recording it, for every engine: a file that is
+    not a complete PNG fails the run as `ContractViolation` naming the file and engine, instead of being stored as
+    that page's render. The COM leg's failure message names the LibreOffice fallback.
+- **Evidence.** On this machine (PowerPoint 16.0): `hello-merged.pptx` (5 pages) exported to five complete PNGs;
+  overwriting the same path with `hello-deep.pptx` (2 pages) and exporting again produced two PNGs that are
+  byte-identical to an export of the same file under a unique path and different from the first run's pages — no
+  stale copy, no truncation. Unit tests: three new cases in `src/bridge/render-pages.test.ts` (COM render through
+  the probe and export, a truncated page rejected, the LibreOffice hint) plus the shared completeness check. The
+  real-machine run also caught an implementation bug in the first version of this fix (PowerShell's `-shl`
+  returns the left operand's type, so widening bytes without `[int]` read the width as zero); the tolerance and
+  the cast are recorded in the script's comment.
+- **Known limits.** The two-pixel tolerance assumes PowerPoint rounds the export within that window; the Kit and
+  `soffice` paths are validated for completeness but not for requested dimensions; the unique copy costs one file
+  copy per run (the decks this tool handles are small); and the fix protects the exporter, not a user's own
+  PowerPoint session, which the script never touches.
+- **Alternatives rejected:** sleeping before reading (a race with no bound); checking only file size (truncated
+  PNGs come in many sizes); closing presentations by name before opening (does not defeat a cache keyed on path in
+  another instance); trusting the engine's JSON page list (it is written before the bytes are flushed).
+
+## ADR-102 — v0.7.1 release: the F1/F7 patch on both channels
+
+- **Date:** 2026-10-08
+- **Context.** V12 C1 fixes two correctness bugs the real-session feedback found (chrome components were
+  coupled to `pageNumber.show`, ADR-100; the PowerPoint COM exporter could record a truncated PNG or a stale
+  in-memory copy, ADR-101). The plan labels this patch **v0.6.2**, but by the time it was ready npm `latest`
+  was already **0.7.0** (ADR-099): publishing 0.6.2 would have put the fix on a version line no `latest` user
+  resolves, leaving the defect in place for everyone installing by name.
+- **Decision.** Ship the patch as **v0.7.1** — the next patch on the line `latest` already points at — and
+  record the deviation from the plan's label here, per the plan's own conflict rule (an ADR arbitrates and the
+  plan is written back).
+- **Evidence (dual channel, 2026-10-08).** npm: `dsh-ppt-flashmade@0.7.1`, 1,033,539 bytes, shasum
+  `224a5ee3fc4f46871746822ffe22ee8001556caf`, integrity
+  `sha512-GDuZ+yTdlpT72wiMkXsrhdtmtjT0xmsq1BX0EGCSrxfuMBJnz2Ny6+w69PoEZYExAmsoe4lXXxFwwvNLW2OgUg==`,
+  `dist-tags.latest = 0.7.1`; the registry tarball was downloaded back and matched both digests. GitHub:
+  annotated tag `v0.7.1` → tag object `62878a2f` → commit `b17107f1` on `main` (the C1 commit replayed as
+  `f9517441` plus the release prep), Release id **406923864** with `dsh-ppt-flashmade-0.7.1.tgz`
+  (id 622064790) and the version-free alias `dsh-ppt-flashmade.tgz` (id 622065000), both 1,033,539 bytes and
+  digest `sha256:4fae2d7ff6e00c278b0f30d3ad3a8d676e9aa2960368a64f68df98576aea4dd3`, each downloaded back to
+  sha1 `224a5ee3…`. CI run 37791316381 for `b17107f1` is green on all five jobs (three `dsh-compat` legs,
+  ubuntu, windows). Acceptance S53 holds on this machine.
+- **Known limits.** The release carries the two fixes only; C2–C7 of V12 and Track B are untouched. The
+  version mismatch between the plan's label and npm's line is corrected in the plan, not retrospectively in
+  the changelog: v0.6.2 is not published and never will be, so no user can hold a "0.6.2 with the fix".
+- **Alternatives rejected:** publishing 0.6.2 (the fix would not reach `latest`); publishing 0.8.0 (the V12
+  architecture line, which would drag unfinished Track B into a patch); publishing only on GitHub (npm is the
+  documented install path).
